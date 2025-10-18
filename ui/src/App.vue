@@ -19,7 +19,7 @@
 </template>
 
 <script>
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, provide, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import NavBar from './components/NavBar.vue'
 import ErrorHandler from './components/ErrorHandler.vue'
@@ -39,6 +39,12 @@ export default {
     const { setupNetworkMonitoring } = useErrorHandling()
     const { currentCanvas, canEdit, getUserRole } = useCanvases()
     const { user } = useAuth()
+    
+    // Provide controls for version history modal
+    const versionHistoryTrigger = ref(0)
+    const saveVersionTrigger = ref(0)
+    provide('versionHistoryTrigger', versionHistoryTrigger)
+    provide('saveVersionTrigger', saveVersionTrigger)
     
     // Only show navbar on canvas route (not on auth page)
     const showNavBar = computed(() => {
@@ -69,15 +75,13 @@ export default {
     })
     
     const handleToggleVersions = () => {
-      const q = { ...route.query }
-      q.history = q.history ? undefined : '1'
-      router.replace({ name: route.name, params: route.params, query: q })
+      // Trigger version history modal without URL change
+      versionHistoryTrigger.value++
     }
 
     const handleSaveVersion = () => {
-      const q = { ...route.query }
-      q.save = '1'
-      router.replace({ name: route.name, params: route.params, query: q })
+      // Trigger save version action without URL change
+      saveVersionTrigger.value++
     }
 
     return {

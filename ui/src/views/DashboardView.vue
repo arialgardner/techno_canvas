@@ -52,7 +52,6 @@
         v-for="canvas in canvasesList"
         :key="canvas.id"
         class="canvas-card window"
-        @click="openCanvas(canvas.id)"
       >
         <div class="inner">
           <div class="header">
@@ -480,7 +479,7 @@ const formatDate = (timestamp) => {
 .dashboard-container {
   min-height: 100vh;
   height: 100vh;
-  background: #008080;
+  background: #000;
   padding: 20px;
   display: flex;
   flex-direction: column;
@@ -528,7 +527,7 @@ const formatDate = (timestamp) => {
   width: 100%;
   flex: 1;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(440px, 1fr));
   gap: 16px;
   align-content: start;
   padding-bottom: 20px;
@@ -536,7 +535,7 @@ const formatDate = (timestamp) => {
 
 @media (min-width: 768px) {
   .canvas-grid {
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
   }
 }
 

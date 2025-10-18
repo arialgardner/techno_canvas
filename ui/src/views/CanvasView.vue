@@ -42,7 +42,7 @@
       <EmptyState 
         v-if="!isLoading && shapesList.length === 0"
         type="canvas"
-        title="Welcome to CollabCanvas!"
+        title="Welcome to Techno Canvas!"
         message="Select a tool from the toolbar above and click on the canvas to create shapes"
         style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10; pointer-events: none;"
       />
@@ -222,7 +222,7 @@
 </template>
 
 <script>
-import { ref, reactive, onMounted, onUnmounted, onBeforeUnmount, computed, watch } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, onBeforeUnmount, computed, watch, inject } from 'vue'
 import VueKonva from 'vue-konva'
 import Toolbar from '../components/Toolbar.vue'
 import ZoomControls from '../components/ZoomControls.vue'
@@ -306,6 +306,10 @@ export default {
     const route = useRoute()
     const router = useRouter()
     const canvasId = computed(() => route.params.canvasId || 'default')
+    
+    // Inject triggers from App.vue
+    const versionHistoryTrigger = inject('versionHistoryTrigger', ref(0))
+    const saveVersionTrigger = inject('saveVersionTrigger', ref(0))
     
     // Composables
     const { user } = useAuth()
@@ -909,31 +913,6 @@ export default {
     }
 
     // Lifecycle
-    const updateHistoryFromRoute = async () => {
-      if (route.query.history) {
-        showVersionHistory.value = true
-        try {
-          await listVersions(canvasId.value)
-        } catch (e) {
-          console.error('Failed to load versions:', e)
-        }
-      } else {
-        showVersionHistory.value = false
-      }
-      // Manual save trigger via ?save=1
-      if (route.query.save && user.value?.uid) {
-        try {
-          const shapesArray = Array.from(shapes.values())
-          if (shapesArray.length > 0) {
-            await createVersion(canvasId.value, user.value.uid, userName.value, shapesArray, 'manual')
-            await listVersions(canvasId.value)
-          }
-        } catch (e) {
-          console.error('Manual version save failed:', e)
-        }
-      }
-    }
-
     onMounted(async () => {
       // Register sync handler for ConnectionStatus "Sync Now"
       setSyncHandler(async () => {
@@ -951,7 +930,6 @@ export default {
       window.addEventListener('keydown', handleKeyDown)
       window.addEventListener('mouseup', handleWindowMouseUp)
 
-      await updateHistoryFromRoute()
       // Initial snapshot on open
       try {
         const shapesArray = Array.from(shapes.values())
@@ -1083,13 +1061,31 @@ export default {
       }
     })
 
-    watch(() => [route.query.history, route.query.save], async () => {
-      await updateHistoryFromRoute()
-      // Clear the save flag after processing so subsequent clicks work
-      if (route.query.save) {
-        const q = { ...route.query }
-        delete q.save
-        router.replace({ name: route.name, params: route.params, query: q })
+    // Watch for version history trigger from navbar
+    watch(versionHistoryTrigger, async () => {
+      if (versionHistoryTrigger.value > 0) {
+        showVersionHistory.value = true
+        try {
+          await listVersions(canvasId.value)
+        } catch (e) {
+          console.error('Failed to load versions:', e)
+        }
+      }
+    })
+
+    // Watch for save version trigger from navbar
+    watch(saveVersionTrigger, async () => {
+      if (saveVersionTrigger.value > 0 && user.value?.uid) {
+        try {
+          const shapesArray = Array.from(shapes.values())
+          if (shapesArray.length > 0) {
+            await createVersion(canvasId.value, user.value.uid, userName.value, shapesArray, 'manual')
+            await listVersions(canvasId.value)
+            showVersionHistory.value = true
+          }
+        } catch (e) {
+          console.error('Save version failed:', e)
+        }
       }
     })
 
@@ -1431,10 +1427,8 @@ export default {
     }
 
     const handleCloseVersionHistory = () => {
-      // Remove the history query parameter from URL
-      const query = { ...route.query }
-      delete query.history
-      router.replace({ name: route.name, params: route.params, query })
+      // Just close the modal without URL changes
+      showVersionHistory.value = false
     }
 
     // V6: AI Command System Integration
@@ -1655,7 +1649,7 @@ export default {
   width: 100%;
   height: 100vh;
   overflow: hidden;
-  background: #008080;
+  background: #000;
   display: flex;
   flex-direction: column;
 }
@@ -1727,7 +1721,7 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 128, 128, 0.9);
+  background: rgba(0, 0, 0, 0.9);
   display: flex;
   align-items: center;
   justify-content: center;

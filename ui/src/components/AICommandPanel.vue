@@ -2,13 +2,13 @@
   <div class="ai-command-panel" :class="{ 'is-focused': isFocused }" data-testid="ai-panel">
     <!-- Beta badge -->
     <div class="beta-badge">
-      <span class="beta-text">AI Assistant (Cmd/Ctrl+J)</span>
+      <span class="beta-text">AI Assistant</span>
       <span class="beta-label">BETA</span>
     </div>
     
     <!-- Keyboard shortcuts info -->
     <div class="shortcuts-info">
-      <strong>Shortcuts:</strong> Enter to send • ↑↓ for history
+      <strong>Shortcuts:</strong> Cmd/Ctrl+J to focus • Enter to send • ↑↓ for history
     </div>
     
     <!-- Main input area -->

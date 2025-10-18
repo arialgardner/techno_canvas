@@ -27,7 +27,7 @@ export default {
     
     const tools = [
       { name: 'select', label: 'Select', icon: '↖' },
-      { name: 'pan', label: 'Pan', icon: '✋' },
+      { name: 'pan', label: 'Pan', icon: '⊕' },
       { name: 'rectangle', label: 'Rectangle', icon: '▭' },
       { name: 'circle', label: 'Circle', icon: '○' },
       { name: 'line', label: 'Line', icon: '╱' },
