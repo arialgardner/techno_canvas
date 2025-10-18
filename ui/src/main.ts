@@ -1,6 +1,6 @@
 import { createApp } from 'vue'
 import './style.css'
-import './style-poolsuite.css'
+import './styles/dist.scss'
 import App from './App.vue'
 import router from './router/index'
 import './firebase/config' // Initialize Firebase
