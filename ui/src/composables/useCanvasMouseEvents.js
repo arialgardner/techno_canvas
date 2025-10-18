@@ -1,0 +1,275 @@
+import { ref, reactive } from 'vue'
+import { DEFAULT_SHAPE_PROPERTIES } from '../types/shapes'
+
+export function useCanvasMouseEvents({
+  stage,
+  stageConfig,
+  canvasWrapper,
+  activeTool,
+  isViewerMode,
+  canUserEdit,
+  selectedShapeIds,
+  clearSelection,
+  startGroupDrag,
+  shapes,
+  user,
+  canvasId,
+  userName,
+  createShape,
+  isCreatingLine,
+  lineStartPoint,
+  startLineCreation,
+  endLineCreation,
+  handleTextEdit,
+  showTextEditor,
+  isPanning,
+  isDragging,
+  lastPointerPosition,
+  isSpacebarPressed,
+  startMarqueeSelection,
+  updateMarqueeSelection,
+  updateGroupDrag,
+  updateShape,
+  finalizeMarqueeSelection,
+  shapesList,
+  endGroupDrag,
+  updateShapesBatch,
+  updateTransformer,
+  isSelecting,
+  updateVisibleShapes
+}) {
+  
+  const handleMouseDown = async (e) => {
+    const clickedOnEmpty = e.target === stage.value.getNode()
+    
+    const pointer = stage.value.getNode().getPointerPosition()
+    const stageAttrs = stage.value.getNode().attrs
+    
+    const canvasX = (pointer.x - stageAttrs.x) / stageAttrs.scaleX
+    const canvasY = (pointer.y - stageAttrs.y) / stageAttrs.scaleY
+    
+    // Check if clicking on a selected shape to start group drag
+    if (!clickedOnEmpty && selectedShapeIds.value.length > 0 && activeTool.value === 'select') {
+      const clickedShapeId = e.target.id()
+      
+      if (clickedShapeId && selectedShapeIds.value.includes(clickedShapeId)) {
+        startGroupDrag(canvasX, canvasY, selectedShapeIds.value, shapes)
+        canvasWrapper.value.style.cursor = 'grabbing'
+        return
+      }
+    }
+    
+    if (clickedOnEmpty) {
+      clearSelection()
+      
+      const userId = user.value?.uid || 'anonymous'
+      
+      // Prevent shape creation in viewer mode
+      if (isViewerMode.value && activeTool.value !== 'select') {
+        activeTool.value = 'select'
+      }
+      
+      // Route to appropriate shape creator based on active tool
+      if (activeTool.value === 'pan') {
+        isPanning.value = true
+        isDragging.value = true
+        lastPointerPosition.x = pointer.x
+        lastPointerPosition.y = pointer.y
+        canvasWrapper.value.style.cursor = 'grabbing'
+        return
+      } else if (activeTool.value === 'rectangle' && canUserEdit.value) {
+        const w = DEFAULT_SHAPE_PROPERTIES.rectangle.width
+        const h = DEFAULT_SHAPE_PROPERTIES.rectangle.height
+        await createShape('rectangle', { x: canvasX - w / 2, y: canvasY - h / 2 }, userId, canvasId.value, userName.value)
+        return
+      } else if (activeTool.value === 'circle' && canUserEdit.value) {
+        const r = DEFAULT_SHAPE_PROPERTIES.circle.radius
+        await createShape('circle', { x: canvasX + r, y: canvasY + r }, userId, canvasId.value, userName.value)
+        return
+      } else if (activeTool.value === 'line' && canUserEdit.value) {
+        if (!isCreatingLine.value) {
+          startLineCreation(canvasX, canvasY)
+          return
+        }
+      } else if (activeTool.value === 'text' && canUserEdit.value) {
+        if (showTextEditor.value) {
+          return
+        }
+        const newText = await createShape('text', { x: canvasX, y: canvasY }, userId, canvasId.value, userName.value)
+        if (newText) {
+          handleTextEdit(newText.id)
+        }
+        return
+      } else if (activeTool.value === 'select') {
+        const isMiddleButton = e.evt && e.evt.button === 1
+        
+        if (isMiddleButton || isSpacebarPressed.value) {
+          isPanning.value = true
+          isDragging.value = true
+          lastPointerPosition.x = pointer.x
+          lastPointerPosition.y = pointer.y
+          canvasWrapper.value.style.cursor = 'grabbing'
+        } else {
+          startMarqueeSelection(canvasX, canvasY)
+        }
+      }
+    }
+  }
+
+  const handleMouseMove = (e) => {
+    const pointer = stage.value.getNode().getPointerPosition()
+    const stageAttrs = stage.value.getNode().attrs
+    const canvasX = (pointer.x - stageAttrs.x) / stageAttrs.scaleX
+    const canvasY = (pointer.y - stageAttrs.y) / stageAttrs.scaleY
+    
+    // Handle group dragging
+    if (isDragging.groupDrag?.value) {
+      const userId = user.value?.uid || 'anonymous'
+      updateGroupDrag(canvasX, canvasY, selectedShapeIds.value, shapes, updateShape, userId, canvasId.value, userName.value)
+      return
+    }
+    
+    // Handle marquee selection update
+    if (isSelecting.value) {
+      updateMarqueeSelection(canvasX, canvasY)
+      return
+    }
+    
+    if (!isPanning.value) {
+      if (activeTool.value === 'pan') {
+        canvasWrapper.value.style.cursor = 'grab'
+      } else if (e.target === stage.value.getNode()) {
+        canvasWrapper.value.style.cursor = 'default'
+      }
+      return
+    }
+
+    // Pan the stage
+    const deltaX = pointer.x - lastPointerPosition.x
+    const deltaY = pointer.y - lastPointerPosition.y
+
+    stageConfig.value.x += deltaX
+    stageConfig.value.y += deltaY
+
+    lastPointerPosition.x = pointer.x
+    lastPointerPosition.y = pointer.y
+    
+    // Update viewport culling after pan
+    if (shapesList.value.length >= 100) {
+      updateVisibleShapes(shapesList.value)
+    }
+  }
+
+  const handleMouseUp = async (e) => {
+    // Handle group drag completion
+    if (isDragging.groupDrag?.value) {
+      const pointer = stage.value.getNode().getPointerPosition()
+      const stageAttrs = stage.value.getNode().attrs
+      const canvasX = (pointer.x - stageAttrs.x) / stageAttrs.scaleX
+      const canvasY = (pointer.y - stageAttrs.y) / stageAttrs.scaleY
+      
+      const userId = user.value?.uid || 'anonymous'
+      await endGroupDrag(canvasX, canvasY, selectedShapeIds.value, updateShapesBatch, canvasId.value, userId, userName.value)
+      
+      canvasWrapper.value.style.cursor = 'default'
+      updateTransformer()
+      return
+    }
+    
+    // Handle line creation completion
+    if (isCreatingLine.value && lineStartPoint.value) {
+      const pointer = stage.value.getNode().getPointerPosition()
+      const stageAttrs = stage.value.getNode().attrs
+      
+      const canvasX = (pointer.x - stageAttrs.x) / stageAttrs.scaleX
+      const canvasY = (pointer.y - stageAttrs.y) / stageAttrs.scaleY
+      
+      const dx = canvasX - lineStartPoint.value.x
+      const dy = canvasY - lineStartPoint.value.y
+      const length = Math.sqrt(dx * dx + dy * dy)
+      
+      if (length >= 10) {
+        const userId = user.value?.uid || 'anonymous'
+        await createShape('line', { 
+          points: [
+            lineStartPoint.value.x, 
+            lineStartPoint.value.y, 
+            canvasX, 
+            canvasY
+          ] 
+        }, userId, canvasId.value, userName.value)
+      }
+      
+      endLineCreation()
+      return
+    }
+    
+    // Finalize marquee selection
+    if (isSelecting.value) {
+      finalizeMarqueeSelection(shapesList.value)
+      return
+    }
+    
+    // Handle panning end
+    isDragging.value = false
+    isPanning.value = false
+    if (canvasWrapper.value) {
+      if (activeTool.value === 'select') {
+        canvasWrapper.value.style.cursor = 'default'
+      } else if (activeTool.value === 'pan') {
+        canvasWrapper.value.style.cursor = 'grab'
+      } else {
+        canvasWrapper.value.style.cursor = 'default'
+      }
+    }
+  }
+
+  const handleWindowMouseUp = async (e) => {
+    if (isSelecting.value) {
+      finalizeMarqueeSelection(shapesList.value)
+    }
+
+    if (isPanning.value || isDragging.value) {
+      isDragging.value = false
+      isPanning.value = false
+      if (canvasWrapper.value) {
+        if (activeTool.value === 'select') {
+          canvasWrapper.value.style.cursor = 'default'
+        } else if (activeTool.value === 'pan') {
+          canvasWrapper.value.style.cursor = 'grab'
+        } else {
+          canvasWrapper.value.style.cursor = 'default'
+        }
+      }
+    }
+  }
+
+  const handleDoubleClick = async (e) => {
+    const clickedOnEmpty = e.target === stage.value.getNode()
+    
+    if (clickedOnEmpty && activeTool.value === 'text' && canUserEdit.value) {
+      const pointer = stage.value.getNode().getPointerPosition()
+      const stageAttrs = stage.value.getNode().attrs
+      
+      const canvasX = (pointer.x - stageAttrs.x) / stageAttrs.scaleX
+      const canvasY = (pointer.y - stageAttrs.y) / stageAttrs.scaleY
+      
+      const userId = user.value?.uid || 'anonymous'
+      
+      const newText = await createShape('text', { x: canvasX, y: canvasY }, userId, canvasId.value, userName.value)
+      
+      if (newText) {
+        handleTextEdit(newText.id)
+      }
+    }
+  }
+
+  return {
+    handleMouseDown,
+    handleMouseMove,
+    handleMouseUp,
+    handleWindowMouseUp,
+    handleDoubleClick
+  }
+}
+

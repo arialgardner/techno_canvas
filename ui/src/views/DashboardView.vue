@@ -1,21 +1,26 @@
 <template>
-  <div class="dashboard-container">
+  <div class="dashboard-container theme-win98">
     <!-- Header -->
     <div class="dashboard-header">
-      <div class="header-content">
-        <h1 class="dashboard-title">My Canvases</h1>
-        <div class="header-actions">
-          <button @click="showCreateModal = true" class="create-button">
-            <span class="plus-icon">+</span>
-            Create New Canvas
-          </button>
-          <div class="user-menu">
-            <div class="user-info">
-              <span class="user-name">{{ user?.displayName || user?.email }}</span>
+      <div class="window">
+        <div class="inner">
+          <div class="header">
+            <span class="title">Techno Canvas - Genres</span>
+          </div>
+          <div class="content header-content">
+            <div class="header-actions">
+              <button @click="showCreateModal = true">
+                Create New Canvas
+              </button>
+              <div class="user-menu">
+                <div class="user-info">
+                  <span class="user-name">{{ user?.displayName || user?.email }}</span>
+                </div>
+                <button @click="handleSignOut">
+                  Sign Out
+                </button>
+              </div>
             </div>
-            <button @click="handleSignOut" class="sign-out-button" title="Sign out">
-              Sign Out
-            </button>
           </div>
         </div>
       </div>
@@ -46,20 +51,12 @@
       <div
         v-for="canvas in canvasesList"
         :key="canvas.id"
-        class="canvas-card"
+        class="canvas-card window"
         @click="openCanvas(canvas.id)"
       >
-        <!-- Thumbnail -->
-        <div class="canvas-thumbnail">
-          <div class="thumbnail-placeholder">
-            <span class="canvas-icon">🎨</span>
-          </div>
-        </div>
-
-        <!-- Canvas Info -->
-        <div class="canvas-info">
-          <div class="canvas-name-row">
-            <h3 class="canvas-name">{{ canvas.name }}</h3>
+        <div class="inner">
+          <div class="header">
+            <span class="title">{{ canvas.name }}</span>
             <span
               v-if="canvas.owner === user.uid"
               class="owner-badge"
@@ -83,181 +80,188 @@
             </span>
           </div>
 
-          <div class="canvas-meta">
-            <span class="meta-item">{{ canvas.width }} × {{ canvas.height }}px</span>
-            <span class="meta-separator">•</span>
-            <span class="meta-item">{{ formatDate(canvas.lastModified) }}</span>
-          </div>
+          <div class="content">
+            <!-- Thumbnail -->
+            <div class="canvas-thumbnail">
+              <span class="canvas-icon">🔗</span>
+            </div>
 
-          <div class="canvas-actions" @click.stop>
-            <button
-              v-if="canvas.owner === user.uid"
-              @click="startRename(canvas)"
-              class="action-button"
-              title="Rename canvas"
-            >
-              ✏️
-            </button>
-            <button
-              v-if="canvas.owner === user.uid"
-              @click="confirmDelete(canvas)"
-              class="action-button delete"
-              title="Delete canvas"
-            >
-              🗑️
-            </button>
-            <button
-              @click="shareCanvas(canvas)"
-              class="action-button"
-              title="Share canvas"
-            >
-              📤
-            </button>
+            <div class="canvas-meta">
+              <div>{{ formatDate(canvas.lastModified) }}</div>
+            </div>
+
+            <div class="canvas-actions" @click.stop>
+              <button
+                @click="openCanvas(canvas.id)"
+                title="Open canvas"
+                class="primary-button"
+              >
+                Open
+              </button>
+              <button
+                v-if="canvas.owner === user.uid"
+                @click="startRename(canvas)"
+                title="Rename canvas"
+              >
+                Rename
+              </button>
+              <button
+                v-if="canvas.owner === user.uid"
+                @click="confirmDelete(canvas)"
+                title="Delete canvas"
+              >
+                Delete
+              </button>
+              <button
+                @click="shareCanvas(canvas)"
+                title="Share canvas"
+              >
+                Share
+              </button>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Create Canvas Modal -->
-    <div v-if="showCreateModal" class="modal-overlay">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h2>Create New Canvas</h2>
-          <button @click="showCreateModal = false" class="close-button">×</button>
-        </div>
-
-        <div class="modal-body">
-          <div class="form-group">
-            <label for="canvas-name">Canvas Name</label>
-            <input
-              id="canvas-name"
-              v-model="newCanvasName"
-              type="text"
-              placeholder="Enter canvas name"
-              class="form-input"
-              @keyup.enter="handleCreateCanvas"
-            />
+    <div v-if="showCreateModal" class="modal-overlay" @click="showCreateModal = false">
+      <div class="window modal-window" @click.stop>
+        <div class="inner">
+          <div class="header">
+            <span class="title">Create New Canvas</span>
           </div>
-        </div>
 
-        <div class="modal-footer">
-          <button @click="showCreateModal = false" class="button-secondary">
-            Cancel
-          </button>
-          <button
-            @click="handleCreateCanvas"
-            :disabled="!newCanvasName || isCreating"
-            class="button-primary"
-          >
-            {{ isCreating ? 'Creating...' : 'Create Canvas' }}
-          </button>
+          <div class="content">
+            <div class="form-group">
+              <label for="canvas-name">Canvas Name:</label>
+              <input
+                id="canvas-name"
+                v-model="newCanvasName"
+                type="text"
+                placeholder="Enter canvas name"
+                @keyup.enter="handleCreateCanvas"
+              />
+            </div>
+
+            <div class="modal-actions">
+              <button @click="showCreateModal = false">
+                Cancel
+              </button>
+              <button
+                @click="handleCreateCanvas"
+                :disabled="!newCanvasName || isCreating"
+              >
+                {{ isCreating ? 'Creating...' : 'Create Canvas' }}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Rename Canvas Modal -->
     <div v-if="renameCanvas" class="modal-overlay" @click="renameCanvas = null">
-      <div class="modal-content" @click.stop>
-        <div class="modal-header">
-          <h2>Rename Canvas</h2>
-          <button @click="renameCanvas = null" class="close-button">×</button>
-        </div>
-
-        <div class="modal-body">
-          <div class="form-group">
-            <label for="rename-input">Canvas Name</label>
-            <input
-              id="rename-input"
-              v-model="renameCanvasName"
-              type="text"
-              class="form-input"
-              @keyup.enter="handleRename"
-            />
+      <div class="window modal-window" @click.stop>
+        <div class="inner">
+          <div class="header">
+            <span class="title">Rename Canvas</span>
           </div>
-        </div>
 
-        <div class="modal-footer">
-          <button @click="renameCanvas = null" class="button-secondary">
-            Cancel
-          </button>
-          <button
-            @click="handleRename"
-            :disabled="!renameCanvasName"
-            class="button-primary"
-          >
-            Rename
-          </button>
+          <div class="content">
+            <div class="form-group">
+              <label for="rename-input">Canvas Name:</label>
+              <input
+                id="rename-input"
+                v-model="renameCanvasName"
+                type="text"
+                @keyup.enter="handleRename"
+              />
+            </div>
+
+            <div class="modal-actions">
+              <button @click="renameCanvas = null">
+                Cancel
+              </button>
+              <button
+                @click="handleRename"
+                :disabled="!renameCanvasName"
+              >
+                Rename
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Delete Confirmation Modal -->
     <div v-if="deleteCanvas" class="modal-overlay" @click="deleteCanvas = null">
-      <div class="modal-content" @click.stop>
-        <div class="modal-header">
-          <h2>Delete Canvas</h2>
-          <button @click="deleteCanvas = null" class="close-button">×</button>
-        </div>
+      <div class="window modal-window" @click.stop>
+        <div class="inner">
+          <div class="header">
+            <span class="title">Delete Canvas</span>
+          </div>
 
-        <div class="modal-body">
-          <p class="warning-text">
-            Are you sure you want to delete "<strong>{{ deleteCanvas.name }}</strong>"?
-          </p>
-          <p class="warning-subtext">
-            This action cannot be undone. All shapes and data will be permanently deleted.
-          </p>
-        </div>
+          <div class="content">
+            <p class="warning-text">
+              Are you sure you want to delete "<strong>{{ deleteCanvas.name }}</strong>"?
+            </p>
+            <p class="warning-subtext">
+              This action cannot be undone. All shapes and data will be permanently deleted.
+            </p>
 
-        <div class="modal-footer">
-          <button @click="deleteCanvas = null" class="button-secondary">
-            Cancel
-          </button>
-          <button
-            @click="handleDelete"
-            :disabled="isDeleting"
-            class="button-danger"
-          >
-            {{ isDeleting ? 'Deleting...' : 'Delete Canvas' }}
-          </button>
+            <div class="modal-actions">
+              <button @click="deleteCanvas = null">
+                Cancel
+              </button>
+              <button
+                @click="handleDelete"
+                :disabled="isDeleting"
+                class="danger-button"
+              >
+                {{ isDeleting ? 'Deleting...' : 'Delete Canvas' }}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Share Canvas Modal -->
     <div v-if="shareCanvasData" class="modal-overlay" @click="shareCanvasData = null">
-      <div class="modal-content" @click.stop>
-        <div class="modal-header">
-          <h2>Share Canvas</h2>
-          <button @click="shareCanvasData = null" class="close-button">×</button>
-        </div>
+      <div class="window modal-window" @click.stop>
+        <div class="inner">
+          <div class="header">
+            <span class="title">Share Canvas</span>
+          </div>
 
-        <div class="modal-body">
-          <div class="form-group">
-            <label>Shareable Link</label>
-            <div class="share-link-row">
-              <input
-                :value="getShareableLink(shareCanvasData.id)"
-                readonly
-                class="form-input share-link"
-                ref="shareLinkInput"
-              />
-              <button @click="copyShareLink" class="button-primary">
-                {{ linkCopied ? 'Copied!' : 'Copy' }}
+          <div class="content">
+            <div class="form-group">
+              <label>Shareable Link:</label>
+              <div class="share-link-row">
+                <input
+                  :value="getShareableLink(shareCanvasData.id)"
+                  readonly
+                  class="share-link"
+                  ref="shareLinkInput"
+                />
+                <button @click="copyShareLink">
+                  {{ linkCopied ? 'Copied!' : 'Copy' }}
+                </button>
+              </div>
+            </div>
+
+            <div class="share-info">
+              Anyone with this link and an account can access this canvas with Editor permissions by default.
+            </div>
+
+            <div class="modal-actions">
+              <button @click="shareCanvasData = null">
+                Done
               </button>
             </div>
           </div>
-
-          <div class="share-info">
-            <p class="info-text">
-              Anyone with this link and an account can access this canvas with Editor permissions by default.
-            </p>
-          </div>
-        </div>
-
-        <div class="modal-footer">
-          <button @click="shareCanvasData = null" class="button-primary">
-            Done
-          </button>
         </div>
       </div>
     </div>
@@ -472,128 +476,52 @@ const formatDate = (timestamp) => {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .dashboard-container {
   min-height: 100vh;
   height: 100vh;
-  background: #f9fafb;
+  background: #008080;
   padding: 20px;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  gap: 20px;
 }
 
 .dashboard-header {
   width: 100%;
   flex-shrink: 0;
-  margin-bottom: 24px;
 }
 
 .header-content {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0;
-  gap: 20px;
-  flex-wrap: wrap;
-}
-
-.dashboard-title {
-  font-size: 32px;
-  font-weight: 700;
-  color: #111827;
-  margin: 0;
-}
-
-@media (max-width: 768px) {
-  .dashboard-title {
-    font-size: 24px;
-  }
+  flex-direction: column;
+  gap: 12px;
 }
 
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 16px;
+  justify-content: space-between;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
 .user-menu {
   display: flex;
   align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-@media (max-width: 640px) {
-  .user-menu {
-    width: 100%;
-    justify-content: flex-end;
-  }
-  
-  .create-button {
-    width: 100%;
-    justify-content: center;
-  }
+  gap: 8px;
 }
 
 .user-info {
-  display: flex;
-  align-items: center;
-  padding: 8px 16px;
-  background: #f3f4f6;
-  border-radius: 8px;
+  padding: 4px 8px;
+  background: #c0c0c0;
+  border: 1px solid #808080;
+  font-size: 11px;
 }
 
 .user-name {
-  font-size: 14px;
-  font-weight: 500;
-  color: #374151;
-}
-
-.sign-out-button {
-  padding: 10px 20px;
-  background: white;
-  color: #374151;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.sign-out-button:hover {
-  background: #f9fafb;
-  border-color: #9ca3af;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.create-button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 24px;
-  background: linear-gradient(135deg, #2d2d2d 0%, #000000 100%);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.create-button:hover {
-  background: linear-gradient(135deg, #1a1a1a 0%, #000000 100%);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-.plus-icon {
-  font-size: 20px;
-  font-weight: 700;
+  font-weight: normal;
 }
 
 .canvas-grid {
@@ -601,169 +529,105 @@ const formatDate = (timestamp) => {
   flex: 1;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
+  gap: 16px;
   align-content: start;
   padding-bottom: 20px;
 }
 
 @media (min-width: 768px) {
   .canvas-grid {
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 24px;
-  }
-}
-
-@media (min-width: 1200px) {
-  .canvas-grid {
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  }
-}
-
-@media (min-width: 1600px) {
-  .canvas-grid {
-    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   }
 }
 
 .canvas-card {
-  background: white;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   cursor: pointer;
-  transition: all 0.2s;
-}
+  transition: transform 0.1s;
 
-.canvas-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-}
+  &:hover {
+    transform: translate(-2px, -2px);
+  }
 
-.canvas-thumbnail {
-  width: 100%;
-  height: 200px;
-  background: linear-gradient(135deg, #2d2d2d 0%, #000000 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+  &:active {
+    transform: translate(0, 0);
+  }
 
-.thumbnail-placeholder {
-  text-align: center;
-}
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
 
-.canvas-icon {
-  font-size: 64px;
-}
-
-.canvas-info {
-  padding: 16px;
-}
-
-.canvas-name-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.canvas-name {
-  font-size: 18px;
-  font-weight: 600;
-  color: #111827;
-  margin: 0;
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  .title {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 
 .owner-badge,
 .editor-badge,
 .viewer-badge {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 4px 8px;
-  border-radius: 4px;
-  text-transform: uppercase;
+  font-size: 9px;
+  padding: 2px 4px;
+  background: #c0c0c0;
+  border: 1px solid #808080;
+  flex-shrink: 0;
 }
 
-.owner-badge {
-  background: #e5e7eb;
-  color: #374151;
+.canvas-thumbnail {
+  width: 100%;
+  height: 140px;
+  background: #000080;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 2px solid #808080;
 }
 
-.editor-badge {
-  background: #d1fae5;
-  color: #065f46;
-}
-
-.viewer-badge {
-  background: #fef3c7;
-  color: #92400e;
+.canvas-icon {
+  font-size: 48px;
 }
 
 .canvas-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: #6b7280;
-  margin-bottom: 12px;
-}
-
-.meta-separator {
-  color: #d1d5db;
+  font-size: 11px;
+  margin: 8px 0;
+  
+  div {
+    margin: 2px 0;
+  }
 }
 
 .canvas-actions {
   display: flex;
-  gap: 8px;
-  padding-top: 12px;
-  border-top: 1px solid #f3f4f6;
-}
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #808080;
 
-.action-button {
-  padding: 6px 12px;
-  background: #f3f4f6;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
+  button {
+    flex: 1;
+    padding: 4px 8px;
+    font-size: 11px;
+  }
 
-.action-button:hover {
-  background: #e5e7eb;
-}
+  .primary-button {
+    background: #000080;
+    color: white;
 
-.action-button.delete:hover {
-  background: #fee2e2;
+    &:hover {
+      background: #0000a0;
+    }
+
+    &:active {
+      background: #000060;
+    }
+  }
 }
 
 .dashboard-empty-state {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-}
-
-.empty-state-button {
-  margin-top: 20px;
-  padding: 12px 24px;
-  background: linear-gradient(135deg, #2d2d2d 0%, #000000 100%);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.empty-state-button:hover {
-  background: linear-gradient(135deg, #1a1a1a 0%, #000000 100%);
 }
 
 /* Modal Styles */
@@ -771,7 +635,6 @@ const formatDate = (timestamp) => {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -779,206 +642,82 @@ const formatDate = (timestamp) => {
   padding: 20px;
 }
 
-.modal-content {
-  background: white;
-  border-radius: 12px;
+.modal-window {
   max-width: 500px;
   width: 100%;
-  max-height: 90vh;
-  overflow: auto;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  padding: 24px;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.modal-header h2 {
-  font-size: 20px;
-  font-weight: 600;
-  color: #111827;
-  margin: 0;
-}
-
-.close-button {
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: none;
-  border: none;
-  font-size: 24px;
-  color: #6b7280;
-  cursor: pointer;
-  border-radius: 4px;
-  transition: all 0.2s;
-  padding: 0;
-  flex-shrink: 0;
-}
-
-.close-button:hover {
-  background: #f3f4f6;
-  color: #111827;
-}
-
-.modal-body {
-  padding: 24px;
 }
 
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 12px;
+
+  label {
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  input {
+    width: 100%;
+    box-sizing: border-box;
+  }
 }
 
-.form-group:last-child {
-  margin-bottom: 0;
-}
-
-.form-group label {
-  display: block;
-  font-size: 14px;
-  font-weight: 600;
-  color: #374151;
-  margin-bottom: 8px;
-}
-
-.form-input {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 14px;
-  transition: all 0.2s;
-}
-
-.form-input:focus {
-  outline: none;
-  border-color: #2d2d2d;
-  box-shadow: 0 0 0 3px rgba(45, 45, 45, 0.1);
-}
-
-.size-row {
+.modal-actions {
   display: flex;
-  align-items: center;
-  gap: 12px;
-}
+  gap: 6px;
+  margin-top: 16px;
 
-.size-input-group {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.size-input-group label {
-  font-size: 12px;
-  font-weight: 500;
-  color: #6b7280;
-}
-
-.size-separator {
-  font-size: 18px;
-  color: #9ca3af;
-  margin-top: 20px;
-}
-
-.form-info {
-  margin-top: 8px;
-}
-
-.info-text {
-  font-size: 13px;
-  color: #6b7280;
+  button {
+    flex: 1;
+  }
 }
 
 .share-link-row {
   display: flex;
-  gap: 8px;
-}
+  gap: 6px;
 
-.share-link {
-  flex: 1;
-  background: #f9fafb;
+  .share-link {
+    flex: 1;
+  }
+
+  button {
+    flex: 0 0 auto;
+    min-width: 80px;
+  }
 }
 
 .share-info {
   margin-top: 12px;
-  padding: 12px;
-  background: #eff6ff;
-  border-radius: 6px;
+  padding: 8px;
+  background: #c0c0c0;
+  border: 1px solid #808080;
+  font-size: 11px;
 }
 
 .warning-text {
-  font-size: 15px;
-  color: #111827;
-  margin: 0 0 12px;
+  font-size: 12px;
+  margin: 0 0 8px;
 }
 
 .warning-subtext {
-  font-size: 13px;
-  color: #6b7280;
-  margin: 0;
+  font-size: 11px;
+  margin: 0 0 12px;
+  color: #666;
 }
 
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding: 20px 24px;
-  border-top: 1px solid #e5e7eb;
-}
+.danger-button {
+  &:not(:disabled) {
+    background: #c00;
+    color: white;
 
-.button-primary,
-.button-secondary,
-.button-danger {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
+    &:hover {
+      background: #a00;
+    }
 
-.button-primary {
-  background: linear-gradient(135deg, #2d2d2d 0%, #000000 100%);
-  color: white;
-}
-
-.button-primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, #1a1a1a 0%, #000000 100%);
-}
-
-.button-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.button-secondary {
-  background: #f3f4f6;
-  color: #374151;
-}
-
-.button-secondary:hover {
-  background: #e5e7eb;
-}
-
-.button-danger {
-  background: #ef4444;
-  color: white;
-}
-
-.button-danger:hover:not(:disabled) {
-  background: #dc2626;
-}
-
-.button-danger:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+    &:active {
+      background: #800;
+    }
+  }
 }
 </style>
+
 

@@ -55,7 +55,7 @@ export default {
 .vh-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.25);
+  background: rgba(0,0,0,0.5);
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -65,58 +65,89 @@ export default {
 .vh-panel {
   width: 560px;
   max-width: calc(100% - 40px);
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  background: #c0c0c0;
+  border: 2px solid #000;
+  box-shadow: inset -1px -1px 0 0 #808080, inset 1px 1px 0 0 #ffffff;
   overflow: hidden;
 }
 .vh-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
-  border-bottom: 1px solid #f1f5f9;
+  padding: 4px 6px;
+  border-bottom: none;
+  background: #000080;
+  color: #fff;
+}
+.vh-header h3 {
+  font-size: 11px;
+  font-weight: bold;
+  margin: 0;
 }
 .vh-close {
-  background: none;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  width: 28px;
-  height: 28px;
+  background: #c0c0c0;
+  border: none;
+  width: 20px;
+  height: 20px;
   cursor: pointer;
-  color: #6b7280;
-  font-size: 24px;
+  color: #000;
+  font-size: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0;
   line-height: 1;
+  box-shadow: inset -1px -1px 0 0 #000000, inset 1px 1px 0 0 #ffffff, inset -2px -2px 0 0 #808080, inset 2px 2px 0 0 #dfdfdf;
 }
-.vh-content { max-height: 60vh; overflow: auto; }
-.vh-empty { padding: 16px; color: #64748b; text-align: center; font-size: 14px; }
+.vh-close:active {
+  box-shadow: inset 1px 1px 0 0 #000000, inset 0 0 0 1px #808080;
+}
+.vh-content { 
+  max-height: 60vh; 
+  overflow: auto;
+  background: #fff;
+  border: 2px solid #808080;
+  margin: 4px;
+}
+.vh-empty { 
+  padding: 12px; 
+  color: #000; 
+  text-align: center; 
+  font-size: 11px;
+}
 .vh-list { display: flex; flex-direction: column; }
-.vh-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid #f1f5f9; }
+.vh-item { 
+  display: flex; 
+  align-items: center; 
+  justify-content: space-between; 
+  padding: 8px 12px; 
+  border-bottom: 1px solid #808080;
+}
+.vh-item:last-child {
+  border-bottom: none;
+}
 .vh-meta { display: flex; flex-direction: column; gap: 2px; }
-.vh-title { font-weight: 600; color: #111827; }
-.vh-sub { font-size: 12px; color: #6b7280; }
-.vh-actions { display: flex; gap: 8px; }
+.vh-title { font-weight: bold; color: #000; font-size: 11px; }
+.vh-sub { font-size: 10px; color: #000; }
+.vh-actions { display: flex; gap: 4px; }
 .vh-btn { 
-  background: #000000; 
-  border: 1px solid #000000; 
-  color: #ffffff; 
-  padding: 6px 10px; 
-  border-radius: 6px; 
+  background: #c0c0c0; 
+  border: none;
+  color: #000; 
+  padding: 4px 10px; 
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: none;
+  font-size: 11px;
+  box-shadow: inset -1px -1px 0 0 #000000, inset 1px 1px 0 0 #ffffff, inset -2px -2px 0 0 #808080, inset 2px 2px 0 0 #dfdfdf;
 }
-.vh-btn:hover:not(:disabled) {
-  background: #1a1a1a;
-  border-color: #1a1a1a;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+.vh-btn:active:not(:disabled) {
+  box-shadow: inset 1px 1px 0 0 #000000, inset 0 0 0 1px #808080;
 }
-.vh-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.vh-btn:disabled { 
+  opacity: 0.6; 
+  cursor: not-allowed;
+  color: #808080;
+}
 </style>
 
 

@@ -12,6 +12,7 @@
     "test:headed": "playwright test --headed"
   },
   "dependencies": {
+    "eslint": "^9.38.0",
     "firebase": "^12.4.0",
     "lz-string": "^1.5.0",
     "openai": "^4.20.0",

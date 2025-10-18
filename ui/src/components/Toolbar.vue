@@ -54,13 +54,13 @@ export default {
   top: 90px; /* Position below navbar (70px) + 20px margin */
   left: 50%;
   transform: translateX(-50%);
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
-  padding: 8px;
+  background: #c0c0c0;
+  padding: 4px;
   display: flex;
-  gap: 8px;
+  gap: 4px;
   z-index: 100; /* Above canvas but below navbar */
+  border: 2px solid #000;
+  box-shadow: inset -1px -1px 0 0 #808080, inset 1px 1px 0 0 #ffffff;
 }
 
 .toolbar-group {
@@ -73,56 +73,59 @@ export default {
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  padding: 8px 12px;
-  background: #d1d5db;
-  border: 2px solid #9ca3af;
-  border-radius: 6px;
+  padding: 6px 10px;
+  background: #c0c0c0;
+  border: none;
   cursor: pointer;
-  transition: all 0.2s ease;
-  min-width: 70px;
+  transition: none;
+  min-width: 60px;
+  box-shadow: inset -1px -1px 0 0 #000000, inset 1px 1px 0 0 #ffffff, inset -2px -2px 0 0 #808080, inset 2px 2px 0 0 #dfdfdf;
 }
 
 .tool-button:hover {
-  background: #9ca3af;
-  border-color: #6b7280;
+  background: #c0c0c0;
+}
+
+.tool-button:active {
+  box-shadow: inset 1px 1px 0 0 #000000, inset 0 0 0 1px #808080;
 }
 
 .tool-button.active {
-  background: #000000;
-  border-color: #000000;
+  background: #000080;
   color: white;
+  box-shadow: inset 1px 1px 0 0 #000000, inset 0 0 0 1px #808080;
 }
 
 .tool-icon {
-  font-size: 20px;
+  font-size: 18px;
   line-height: 1;
 }
 
 .tool-label {
-  font-size: 11px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-size: 10px;
+  font-weight: normal;
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .toolbar {
     top: 70px;
-    padding: 6px;
+    padding: 4px;
   }
 
   .tool-button {
-    min-width: 60px;
-    padding: 6px 10px;
+    min-width: 50px;
+    padding: 5px 8px;
   }
 
   .tool-icon {
-    font-size: 18px;
+    font-size: 16px;
   }
 
   .tool-label {
-    font-size: 10px;
+    font-size: 9px;
   }
 }
 </style>

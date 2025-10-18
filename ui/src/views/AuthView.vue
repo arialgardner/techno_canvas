@@ -3,7 +3,7 @@
     <div class="window auth-card">
       <div class="inner">
         <div class="header">
-          <span class="title">CollabCanvas - Authentication</span>
+          <span class="title">techno canvas - Authentication</span>
         </div>
 
         <div class="content">

@@ -5,10 +5,23 @@
     "konva": "^10.0.2",
     "prettier": "^3.6.2",
     "tailwindcss": "^4.1.14",
-    "vue-konva": "^3.2.6"
+    "vue-konva": "^3.2.6",
+    "country-flag-icons": "^1.5.12",
+    "hls.js": "^1.5.15",
+    "mitt": "^3.0.1",
+    "nouislider": "^15.6.1",
+    "simplebar-vue": "^2.3.5",
+    "vue-i18n": "^9.13.1",
+    "vue-loader": "^17.2.1",
+    "vue-turnstile": "^1.0.8",
+    "@vitejs/plugin-vue": "^5.0.4",
+    "bootstrap": "4.6.2"
   },
   "devDependencies": {
     "@vue/test-utils": "^2.4.6",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "sass": "^1.57.1",
+    "terser": "^5.16.1",
+    "eslint-plugin-vue": "^9.23.0"
   }
 }

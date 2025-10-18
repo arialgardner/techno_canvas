@@ -2,8 +2,13 @@
   <div class="ai-command-panel" :class="{ 'is-focused': isFocused }" data-testid="ai-panel">
     <!-- Beta badge -->
     <div class="beta-badge">
-      <span class="beta-text">AI Assistant</span>
+      <span class="beta-text">AI Assistant (Cmd/Ctrl+J)</span>
       <span class="beta-label">BETA</span>
+    </div>
+    
+    <!-- Keyboard shortcuts info -->
+    <div class="shortcuts-info">
+      <strong>Shortcuts:</strong> Enter to send • ↑↓ for history
     </div>
     
     <!-- Main input area -->
@@ -16,7 +21,7 @@
         @keydown.enter="handleSendCommand"
         @keydown.up="navigateHistory(-1)"
         @keydown.down="navigateHistory(1)"
-        :placeholder="isProcessing ? 'Processing...' : 'Type AI command (Cmd/Ctrl+J)'"
+        :placeholder="isProcessing ? 'Processing...' : 'Type AI command...'"
         :disabled="isProcessing"
         class="command-input"
         autocomplete="off"
@@ -280,17 +285,15 @@ onUnmounted(() => {
   bottom: 20px;
   right: 320px; /* Above properties panel */
   width: 400px;
-  background-color: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  padding: 12px;
+  background-color: #c0c0c0;
+  padding: 4px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   z-index: 100;
-  transition: all 0.2s ease-in-out;
-  border: 1px solid #e2e8f0;
+  transition: none;
+  border: 2px solid #000;
+  box-shadow: inset -1px -1px 0 0 #808080, inset 1px 1px 0 0 #ffffff;
 }
 
 /* Responsive positioning - stay on right side */
@@ -305,7 +308,7 @@ onUnmounted(() => {
   .ai-command-panel {
     right: 1rem; /* Properties panel hidden, move to right edge */
     width: 280px;
-    padding: 10px;
+    padding: 4px;
     bottom: 1rem;
   }
 }
@@ -316,107 +319,111 @@ onUnmounted(() => {
     left: 0.75rem; /* Full width on very small screens */
     width: auto;
     bottom: 0.75rem;
-    padding: 8px;
+    padding: 4px;
   }
 }
 
 .ai-command-panel.is-focused {
-  background-color: rgba(255, 255, 255, 1);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  border-color: #2d2d2d;
+  border-color: #000;
 }
 
 .beta-badge {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #e2e8f0;
+  gap: 6px;
+  margin-bottom: 4px;
+  padding: 4px 6px;
+  border-bottom: 1px solid #808080;
+  background: #000080;
 }
 
 .beta-text {
-  font-size: 13px;
-  font-weight: 600;
-  color: #374151;
+  font-size: 11px;
+  font-weight: bold;
+  color: #fff;
 }
 
 .beta-label {
   display: inline-block;
-  padding: 2px 6px;
-  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-  color: #ffffff;
+  padding: 2px 4px;
+  background: #ffff00;
+  color: #000;
   font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  border-radius: 4px;
+  font-weight: bold;
+  letter-spacing: 0;
   text-transform: uppercase;
-  box-shadow: 0 1px 3px rgba(245, 158, 11, 0.3);
+  border: 1px solid #000;
+}
+
+.shortcuts-info {
+  font-size: 10px;
+  color: #000;
+  padding: 4px 6px;
+  background: #fff;
+  border: 1px solid #808080;
+  margin-bottom: 4px;
+  
+  strong {
+    font-weight: bold;
+  }
 }
 
 .input-area {
   display: flex;
-  gap: 8px;
+  gap: 4px;
 }
 
 .command-input {
   flex-grow: 1;
-  padding: 10px 14px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 14px;
+  padding: 3px 4px;
+  border: none;
+  box-shadow: inset -1px -1px 0 0 #ffffff, inset 1px 1px 0 0 #808080, inset -2px -2px 0 0 #dfdfdf, inset 2px 2px 0 0 #000000;
+  font-size: 11px;
   outline: none;
-  transition: all 0.2s ease;
-  background-color: #ffffff;
-  color: #000000; /* Ensure typed text is black */
+  transition: none;
+  background-color: #fff;
+  color: #000;
 }
 
 .command-input:focus {
-  border-color: #2d2d2d;
-  box-shadow: 0 0 0 3px rgba(45, 45, 45, 0.1);
+  outline: 1px dotted #000;
+  outline-offset: -2px;
 }
 
 .command-input::placeholder {
-  color: #9ca3af;
+  color: #808080;
 }
 
 .command-input:disabled {
-  background-color: #f3f4f6;
+  background-color: #c0c0c0;
   cursor: not-allowed;
-  color: #6b7280;
+  color: #808080;
 }
 
 .send-button {
-  background: linear-gradient(135deg, #2d2d2d 0%, #000000 100%);
-  color: white;
-  padding: 10px 20px;
+  background: #c0c0c0;
+  color: #000;
+  padding: 4px 12px;
   border: none;
-  border-radius: 8px;
   cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.2s ease;
+  font-size: 11px;
+  font-weight: normal;
+  transition: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 80px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.send-button:hover:not(:disabled) {
-  background: linear-gradient(135deg, #1a1a1a 0%, #000000 100%);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-  transform: translateY(-1px);
+  min-width: 60px;
+  box-shadow: inset -1px -1px 0 0 #000000, inset 1px 1px 0 0 #ffffff, inset -2px -2px 0 0 #808080, inset 2px 2px 0 0 #dfdfdf;
 }
 
 .send-button:active:not(:disabled) {
-  transform: translateY(0);
+  box-shadow: inset 1px 1px 0 0 #000000, inset 0 0 0 1px #808080;
 }
 
 .send-button:disabled {
-  background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
+  background: #c0c0c0;
   cursor: not-allowed;
-  box-shadow: none;
+  color: #808080;
 }
 
 /* Responsive input and button sizing */
@@ -456,11 +463,11 @@ onUnmounted(() => {
 }
 
 .spinner {
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top: 2px solid #fff;
-  border-radius: 50%;
-  width: 18px;
-  height: 18px;
+  border: 2px solid #808080;
+  border-top: 2px solid #000;
+  border-radius: 0;
+  width: 14px;
+  height: 14px;
   animation: spin 0.8s linear infinite;
 }
 
@@ -474,25 +481,23 @@ onUnmounted(() => {
 }
 
 .feedback-message {
-  padding: 10px 14px;
-  border-radius: 8px;
-  font-size: 13px;
+  padding: 4px 6px;
+  font-size: 11px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  animation: slideIn 0.2s ease-out;
+  gap: 4px;
+  animation: none;
+  border: 1px solid #000;
 }
 
 .feedback-message.success {
-  background-color: #d1fae5;
-  color: #065f46;
-  border: 1px solid #a7f3d0;
+  background-color: #00ff00;
+  color: #000;
 }
 
 .feedback-message.error {
-  background-color: #fee2e2;
-  color: #991b1b;
-  border: 1px solid #fca5a5;
+  background-color: #ff0000;
+  color: #fff;
 }
 
 /* Responsive feedback message */
@@ -505,50 +510,48 @@ onUnmounted(() => {
 }
 
 .suggested-commands {
-  border-top: 1px solid #e2e8f0;
-  padding-top: 10px;
+  border-top: 1px solid #808080;
+  padding-top: 6px;
   margin-top: 4px;
 }
 
 .suggestions-header {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: #6b7280;
-  padding: 4px 8px;
-  letter-spacing: 0.5px;
-  margin-bottom: 4px;
-}
-
-.suggestion-item {
-  padding: 10px 12px;
-  cursor: pointer;
-  font-size: 13px;
-  color: #374151;
-  border-radius: 6px;
-  transition: all 0.15s ease;
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  font-size: 10px;
+  font-weight: bold;
+  text-transform: none;
+  color: #000;
+  padding: 2px 4px;
+  letter-spacing: 0;
   margin-bottom: 2px;
 }
 
+.suggestion-item {
+  padding: 4px 6px;
+  cursor: pointer;
+  font-size: 11px;
+  color: #000;
+  transition: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 1px;
+}
+
 .suggestion-item:hover {
-  background-color: #f9fafb;
-  transform: translateX(2px);
+  background-color: #000080;
+  color: #fff;
 }
 
 .suggestion-icon {
-  font-size: 16px;
+  font-size: 12px;
   flex-shrink: 0;
-  width: 20px;
+  width: 16px;
   text-align: center;
 }
 
 .suggestion-text {
   flex: 1;
-  color: #4b5563;
-  font-style: italic;
+  font-style: normal;
 }
 
 /* Responsive suggestions */
@@ -571,50 +574,51 @@ onUnmounted(() => {
 }
 
 .command-history {
-  border-top: 1px solid #e2e8f0;
-  padding-top: 10px;
+  border-top: 1px solid #808080;
+  padding-top: 6px;
   margin-top: 4px;
 }
 
 .history-header {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: #6b7280;
-  padding: 4px 8px;
-  letter-spacing: 0.5px;
+  font-size: 10px;
+  font-weight: bold;
+  text-transform: none;
+  color: #000;
+  padding: 2px 4px;
+  letter-spacing: 0;
 }
 
 .history-item {
-  padding: 8px 10px;
+  padding: 4px 6px;
   cursor: pointer;
-  font-size: 13px;
-  color: #374151;
-  border-radius: 6px;
-  transition: background-color 0.15s ease;
+  font-size: 11px;
+  color: #000;
+  transition: none;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
 }
 
 .history-item:hover {
-  background-color: #f3f4f6;
+  background-color: #000080;
+  color: #fff;
 }
 
 .history-item-error {
-  opacity: 0.6;
+  opacity: 0.7;
 }
 
 .history-icon {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
+  width: 14px;
+  height: 14px;
+  border-radius: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: bold;
   flex-shrink: 0;
+  border: 1px solid #000;
 }
 
 /* Responsive history */
@@ -638,13 +642,13 @@ onUnmounted(() => {
 }
 
 .history-icon.success {
-  background-color: #d1fae5;
-  color: #059669;
+  background-color: #00ff00;
+  color: #000;
 }
 
 .history-icon.error {
-  background-color: #fee2e2;
-  color: #dc2626;
+  background-color: #ff0000;
+  color: #fff;
 }
 
 .history-text {
@@ -655,8 +659,8 @@ onUnmounted(() => {
 }
 
 .history-time {
-  font-size: 11px;
-  color: #9ca3af;
+  font-size: 10px;
+  color: #808080;
   flex-shrink: 0;
 }
 
@@ -681,16 +685,5 @@ onUnmounted(() => {
 .slide-down-leave-to {
   opacity: 0;
   transform: translateY(-10px);
-}
-
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-5px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 </style>

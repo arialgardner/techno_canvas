@@ -73,10 +73,10 @@
         </div>
 
         <!-- Version History & Save (owner-only) -->
-        <button v-if="isOwner" class="logout-button" title="Version History" @click="$emit('toggle-versions')" style="background:#e5e7eb;color:#374151;border-color:#d1d5db;">
+        <button v-if="isOwner" class="logout-button" title="Version History" @click="$emit('toggle-versions')">
           History
         </button>
-        <button v-if="isOwner" class="logout-button" title="Save Version" @click="$emit('save-version')" :disabled="isOffline" style="background:#6b7280;color:#ffffff;border-color:#4b5563;">
+        <button v-if="isOwner" class="logout-button" title="Save Version" @click="$emit('save-version')" :disabled="isOffline">
           Save
         </button>
         
@@ -286,60 +286,58 @@ export default {
 
 <style scoped>
 .navbar {
-  background: white;
-  border-bottom: 1px solid #e2e8f0;
+  background: #c0c0c0;
+  border-bottom: 2px solid #808080;
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   z-index: 1000;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: inset 1px 1px 0 0 #ffffff, inset -1px -1px 0 0 #808080;
 }
 
 .nav-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem 1.5rem;
+  padding: 4px 8px;
 }
 
 .nav-brand {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 8px;
 }
 
 .nav-brand h1 {
   margin: 0;
-  color: #2d3748;
-  font-size: 1.5rem;
-  font-weight: 600;
+  color: #000;
+  font-size: 14px;
+  font-weight: bold;
 }
 
 .back-button {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.5rem 0.75rem;
-  background: white;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: #000000;
+  gap: 4px;
+  padding: 4px 8px;
+  background: #c0c0c0;
+  border: none;
+  box-shadow: inset -1px -1px 0 0 #000000, inset 1px 1px 0 0 #ffffff, inset -2px -2px 0 0 #808080, inset 2px 2px 0 0 #dfdfdf;
+  font-size: 11px;
+  font-weight: normal;
+  color: #000;
   cursor: pointer;
-  transition: all 0.2s ease;
 }
 
-.back-button:hover {
-  background: #f3f4f6;
-  border-color: #9ca3af;
+.back-button:active {
+  box-shadow: inset 1px 1px 0 0 #000000, inset 0 0 0 1px #808080;
 }
 
 .nav-controls {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 6px;
 }
 
 .presence-section {
@@ -349,43 +347,41 @@ export default {
 .user-count {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  background: #f7fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
+  gap: 4px;
+  padding: 4px 8px;
+  background: #c0c0c0;
+  border: none;
+  box-shadow: inset -1px -1px 0 0 #000000, inset 1px 1px 0 0 #ffffff, inset -2px -2px 0 0 #808080, inset 2px 2px 0 0 #dfdfdf;
   cursor: pointer;
-  transition: all 0.2s;
-  font-size: 0.9rem;
+  font-size: 11px;
 }
 
-.user-count:hover {
-  background: #edf2f7;
-  border-color: #cbd5e0;
+.user-count:active {
+  box-shadow: inset 1px 1px 0 0 #000000, inset 0 0 0 1px #808080;
 }
 
 .count-badge {
-  background: #000000;
+  background: #000080;
   color: white;
-  border-radius: 50%;
-  width: 20px;
-  height: 20px;
+  border-radius: 0;
+  width: 16px;
+  height: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: bold;
 }
 
 .count-text {
-  color: #4a5568;
+  color: #000;
 }
 
 .dropdown-arrow {
-  width: 16px;
-  height: 16px;
-  fill: #718096;
-  transition: transform 0.2s;
+  width: 12px;
+  height: 12px;
+  fill: #000;
+  transition: transform 0.1s;
 }
 
 .dropdown-arrow.rotated {
@@ -396,111 +392,115 @@ export default {
   position: absolute;
   top: 100%;
   right: 0;
-  margin-top: 0.5rem;
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  min-width: 200px;
+  margin-top: 4px;
+  background: #c0c0c0;
+  border: 2px solid #000;
+  box-shadow: inset -1px -1px 0 0 #808080, inset 1px 1px 0 0 #ffffff;
+  min-width: 180px;
   z-index: 1001;
 }
 
 .dropdown-header {
-  padding: 0.75rem 1rem 0.5rem 1rem;
-  font-weight: 600;
-  color: #2d3748;
-  border-bottom: 1px solid #e2e8f0;
-  font-size: 0.9rem;
+  padding: 6px 8px;
+  font-weight: bold;
+  color: #000;
+  border-bottom: 2px solid #808080;
+  font-size: 11px;
+  background: #000080;
+  color: #fff;
 }
 
 .empty-state {
-  padding: 1rem;
-  color: #718096;
-  font-size: 0.9rem;
+  padding: 8px;
+  color: #000;
+  font-size: 11px;
   text-align: center;
 }
 
 .user-list {
-  padding: 0.5rem 0;
+  padding: 4px 0;
 }
 
 .user-item {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem 1rem;
-  transition: background-color 0.2s;
+  gap: 6px;
+  padding: 4px 8px;
+  transition: none;
 }
 
 .user-item:hover {
-  background: #f7fafc;
+  background: #000080;
+  color: #fff;
+}
+
+.user-item:hover .user-name {
+  color: #fff;
 }
 
 .user-item.current-user {
-  background: #edf2f7;
+  background: #808080;
 }
 
 .cursor-color,
 .user-cursor-color {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  border: 2px solid #000000;
+  width: 10px;
+  height: 10px;
+  border-radius: 0;
+  border: 1px solid #000;
 }
 
 .user-cursor-color {
-  width: 16px;
-  height: 16px;
+  width: 12px;
+  height: 12px;
 }
 
 .user-name {
-  color: #2d3748;
-  font-size: 0.9rem;
+  color: #000;
+  font-size: 11px;
 }
 
 .you-label {
-  color: #718096;
-  font-size: 0.8rem;
-  font-style: italic;
+  color: #000;
+  font-size: 10px;
+  font-style: normal;
 }
 
 .user-info {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  background: #f7fafc;
-  border-radius: 6px;
-  border: 1px solid #e2e8f0;
+  gap: 4px;
+  padding: 4px 8px;
+  background: #c0c0c0;
+  border: 1px solid #808080;
 }
 
 .logout-button {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  background: #f3f4f6;
-  color: #000000;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
+  gap: 4px;
+  padding: 4px 8px;
+  background: #c0c0c0;
+  color: #000;
+  border: none;
+  box-shadow: inset -1px -1px 0 0 #000000, inset 1px 1px 0 0 #ffffff, inset -2px -2px 0 0 #808080, inset 2px 2px 0 0 #dfdfdf;
   cursor: pointer;
-  transition: all 0.2s;
-  font-size: 0.9rem;
+  transition: none;
+  font-size: 11px;
 }
 
-.logout-button:hover:not(:disabled) {
-  background: #e5e7eb;
-  border-color: #9ca3af;
+.logout-button:active:not(:disabled) {
+  box-shadow: inset 1px 1px 0 0 #000000, inset 0 0 0 1px #808080;
 }
 
 .logout-button:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
 .logout-icon {
-  width: 16px;
-  height: 16px;
+  width: 12px;
+  height: 12px;
   fill: currentColor;
 }
 

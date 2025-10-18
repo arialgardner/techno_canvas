@@ -127,4 +127,73 @@ body {
   flex-direction: column;
   overflow: hidden;
 }
+
+/* Windows 98 Theme - Global Button Styles */
+.theme-win98 button,
+.window button,
+button {
+  border-radius: 0 !important;
+}
+
+/* Windows 98 Theme - Window Component Styles */
+.theme-win98 .window {
+  background: #c0c0c0;
+  border: 2px solid #000;
+  box-shadow: inset -1px -1px 0 0 #808080, inset 1px 1px 0 0 #ffffff;
+}
+
+.theme-win98 .window .inner {
+  padding: 0;
+}
+
+.theme-win98 .window .header {
+  background: #000080;
+  color: #fff;
+  padding: 4px 6px;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.theme-win98 .window .content {
+  padding: 8px;
+}
+
+.theme-win98 button,
+.window button {
+  background: #c0c0c0;
+  border: none;
+  padding: 4px 12px;
+  font-size: 11px;
+  color: #000;
+  box-shadow: inset -1px -1px 0 0 #000000, inset 1px 1px 0 0 #ffffff, inset -2px -2px 0 0 #808080, inset 2px 2px 0 0 #dfdfdf;
+}
+
+.theme-win98 button:active,
+.window button:active {
+  box-shadow: inset 1px 1px 0 0 #000000, inset 0 0 0 1px #808080;
+}
+
+.theme-win98 button:disabled,
+.window button:disabled {
+  color: #808080;
+  opacity: 0.6;
+}
+
+.theme-win98 input,
+.theme-win98 select,
+.theme-win98 textarea {
+  border: none;
+  box-shadow: inset -1px -1px 0 0 #ffffff, inset 1px 1px 0 0 #808080, inset -2px -2px 0 0 #dfdfdf, inset 2px 2px 0 0 #000000;
+  padding: 3px 4px;
+  font-size: 11px;
+  background: #fff;
+  color: #000;
+}
+
+.theme-win98 input:focus,
+.theme-win98 select:focus,
+.theme-win98 textarea:focus {
+  outline: 1px dotted #000;
+  outline-offset: -2px;
+}
 </style>

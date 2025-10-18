@@ -91,10 +91,9 @@ export default {
   transform: translate(-50%, -50%);
   width: 90%;
   max-width: 500px;
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  background: #c0c0c0;
+  border: 2px solid #000;
+  box-shadow: inset -1px -1px 0 0 #808080, inset 1px 1px 0 0 #ffffff;
   z-index: 2001;
   display: flex;
   flex-direction: column;
@@ -104,49 +103,110 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 12px;
-  border-bottom: 1px solid #e2e8f0;
+  padding: 4px 6px;
+  border-bottom: none;
+  background: #000080;
+  color: #fff;
 }
-.header h4 { margin: 0; font-size: 14px; color: #2d3748; }
+.header h4 { 
+  margin: 0; 
+  font-size: 11px; 
+  font-weight: bold;
+}
 .close { 
-  background: none; 
+  background: #c0c0c0; 
   border: none; 
-  font-size: 20px; 
+  font-size: 16px; 
   cursor: pointer; 
-  color: #2d3748;
+  color: #000;
   padding: 0;
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
   line-height: 1;
   flex-shrink: 0;
+  box-shadow: inset -1px -1px 0 0 #000000, inset 1px 1px 0 0 #ffffff, inset -2px -2px 0 0 #808080, inset 2px 2px 0 0 #dfdfdf;
 }
-.close:hover { 
-  color: #000000; 
+.close:active { 
+  box-shadow: inset 1px 1px 0 0 #000000, inset 0 0 0 1px #808080;
 }
-.content { flex: 1; overflow: auto; min-height: 0; }
-.empty { padding: 16px; color: #718096; font-size: 13px; text-align: center; }
+.content { 
+  flex: 1; 
+  overflow: auto; 
+  min-height: 0;
+  background: #fff;
+  border: 2px solid #808080;
+  margin: 4px;
+}
+.empty { 
+  padding: 12px; 
+  color: #000; 
+  font-size: 11px; 
+  text-align: center; 
+}
 .list { display: flex; flex-direction: column; }
-.item { display: flex; justify-content: space-between; padding: 10px 12px; border-bottom: 1px solid #f1f5f9; }
-.left { display: flex; gap: 8px; align-items: center; }
-.type { text-transform: uppercase; font-size: 11px; padding: 2px 6px; border-radius: 4px; background: #edf2f7; color: #4a5568; }
-.type.update { background: #e0f2fe; color: #0369a1; }
-.type.create { background: #dcfce7; color: #065f46; }
-.type.delete { background: #fee2e2; color: #991b1b; }
-.shape { font-size: 12px; color: #334155; }
-.right { display: flex; gap: 6px; align-items: center; }
-.status { font-size: 12px; color: #64748b; margin-right: 4px; }
-.btn { background: #ffffff; border: 1px solid #d1d5db; border-radius: 4px; padding: 6px 8px; font-size: 12px; cursor: pointer; color: #000000; transition: all 0.15s ease; }
-.btn:hover { background: #f3f4f6; }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn:disabled:hover { background: #ffffff; }
-.btn.danger { background: #000000; border-color: #000000; color: #ffffff; }
-.btn.danger:hover { background: #1a1a1a; border-color: #1a1a1a; transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); }
-.btn.danger:disabled { background: #000000; border-color: #000000; }
-.btn.danger:disabled:hover { background: #000000; transform: none; box-shadow: none; }
-.footer { display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid #e2e8f0; }
+.item { 
+  display: flex; 
+  justify-content: space-between; 
+  padding: 8px 10px; 
+  border-bottom: 1px solid #808080;
+}
+.item:last-child {
+  border-bottom: none;
+}
+.left { display: flex; gap: 6px; align-items: center; }
+.type { 
+  text-transform: uppercase; 
+  font-size: 9px; 
+  padding: 2px 4px; 
+  background: #c0c0c0; 
+  color: #000;
+  border: 1px solid #808080;
+  font-weight: bold;
+}
+.type.update { background: #00ffff; color: #000; }
+.type.create { background: #00ff00; color: #000; }
+.type.delete { background: #ff0000; color: #fff; }
+.shape { font-size: 10px; color: #000; }
+.right { display: flex; gap: 4px; align-items: center; }
+.status { font-size: 10px; color: #000; margin-right: 4px; }
+.btn { 
+  background: #c0c0c0; 
+  border: none;
+  padding: 4px 8px; 
+  font-size: 10px; 
+  cursor: pointer; 
+  color: #000; 
+  transition: none;
+  box-shadow: inset -1px -1px 0 0 #000000, inset 1px 1px 0 0 #ffffff, inset -2px -2px 0 0 #808080, inset 2px 2px 0 0 #dfdfdf;
+}
+.btn:active:not(:disabled) { 
+  box-shadow: inset 1px 1px 0 0 #000000, inset 0 0 0 1px #808080;
+}
+.btn:disabled { 
+  opacity: 0.6; 
+  cursor: not-allowed;
+  color: #808080;
+}
+.btn.danger { 
+  background: #c00; 
+  color: #fff;
+}
+.btn.danger:active:not(:disabled) { 
+  box-shadow: inset 1px 1px 0 0 #000000, inset 0 0 0 1px #808080;
+}
+.btn.danger:disabled { 
+  background: #c00; 
+  opacity: 0.6;
+}
+.footer { 
+  display: flex; 
+  gap: 4px; 
+  padding: 4px; 
+  background: #c0c0c0;
+}
 </style>
 
 
