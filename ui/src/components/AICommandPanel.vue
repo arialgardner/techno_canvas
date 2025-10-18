@@ -8,7 +8,7 @@
     
     <!-- Keyboard shortcuts info -->
     <div class="shortcuts-info">
-      <strong>Shortcuts:</strong> Cmd/Ctrl+J to focus • Enter to send • ↑↓ for history
+      <strong>Shortcuts:</strong> Cmd/Ctrl+J to focus • Enter to send
     </div>
     
     <!-- Main input area -->

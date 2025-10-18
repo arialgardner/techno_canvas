@@ -45,7 +45,7 @@ defineProps({
   position: relative;
   width: 64px;
   height: 64px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .spinner-ring {
@@ -55,10 +55,11 @@ defineProps({
   width: 51px;
   height: 51px;
   margin: 6px;
-  border: 6px solid #3b82f6;
-  border-radius: 50%;
+  border: 4px solid #000080;
+  border-radius: 0;
   animation: spinner-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
-  border-color: #3b82f6 transparent transparent transparent;
+  border-color: #000080 transparent transparent transparent;
+  box-shadow: 2px 2px 0 0 #808080;
 }
 
 .spinner-ring:nth-child(1) {
@@ -83,17 +84,17 @@ defineProps({
 }
 
 .loading-title {
-  margin: 0 0 8px 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: #1f2937;
+  margin: 0 0 6px 0;
+  font-size: 14px;
+  font-weight: bold;
+  color: #000;
 }
 
 .loading-message {
   margin: 0;
-  font-size: 14px;
-  color: #6b7280;
-  line-height: 1.5;
+  font-size: 11px;
+  color: #000;
+  line-height: 1.4;
 }
 
 /* Skeleton loading variants */

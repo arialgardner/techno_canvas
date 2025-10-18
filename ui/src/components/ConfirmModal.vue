@@ -67,18 +67,17 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.6);
+  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 10000;
-  backdrop-filter: blur(2px);
 }
 
 .modal-container {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  background: #c0c0c0;
+  border: 2px solid #000;
+  box-shadow: inset -1px -1px 0 0 #808080, inset 1px 1px 0 0 #ffffff;
   max-width: 450px;
   width: 90%;
   overflow: hidden;
@@ -97,74 +96,73 @@ export default {
 }
 
 .modal-header {
-  padding: 24px 24px 16px;
-  border-bottom: 1px solid #e5e7eb;
+  padding: 4px 6px;
+  background: #000080;
+  color: #fff;
 }
 
 .modal-header h3 {
   margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: #111827;
+  font-size: 11px;
+  font-weight: bold;
 }
 
 .modal-body {
-  padding: 24px;
+  padding: 12px;
+  background: #fff;
+  border: 2px solid #808080;
+  margin: 4px;
 }
 
 .modal-body p {
   margin: 0;
-  color: #4b5563;
-  line-height: 1.6;
-  font-size: 14px;
+  color: #000;
+  line-height: 1.4;
+  font-size: 11px;
 }
 
 .modal-footer {
-  padding: 16px 24px;
-  background: #f9fafb;
+  padding: 4px;
+  background: #c0c0c0;
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
-  border-top: 1px solid #e5e7eb;
+  gap: 4px;
 }
 
 .btn {
-  padding: 10px 20px;
+  padding: 4px 12px;
   border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 11px;
+  font-weight: normal;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: none;
   outline: none;
+  background: #c0c0c0;
+  color: #000;
+  box-shadow: inset -1px -1px 0 0 #000000, inset 1px 1px 0 0 #ffffff, inset -2px -2px 0 0 #808080, inset 2px 2px 0 0 #dfdfdf;
 }
 
 .btn:focus {
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  outline: 1px dotted #000;
+  outline-offset: -2px;
 }
 
 .btn-secondary {
-  background: white;
-  color: #000000;
-  border: 1px solid #d1d5db;
+  background: #c0c0c0;
+  color: #000;
 }
 
-.btn-secondary:hover {
-  background: #f9fafb;
-  border-color: #9ca3af;
+.btn-secondary:active {
+  box-shadow: inset 1px 1px 0 0 #000000, inset 0 0 0 1px #808080;
 }
 
 .btn-danger {
-  background: #ef4444;
-  color: white;
-}
-
-.btn-danger:hover {
-  background: #dc2626;
+  background: #c00;
+  color: #fff;
 }
 
 .btn-danger:active {
-  background: #b91c1c;
+  box-shadow: inset 1px 1px 0 0 #000000, inset 0 0 0 1px #808080;
 }
 </style>
 

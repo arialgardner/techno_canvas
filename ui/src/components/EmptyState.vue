@@ -42,7 +42,7 @@ const emit = defineEmits(['action'])
 const defaultIcon = computed(() => {
   switch (props.type) {
     case 'canvas':
-      return '🎨'
+      return '🔗'
     case 'users':
       return '👥'
     case 'rectangles':
@@ -96,29 +96,29 @@ const defaultMessage = computed(() => {
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 60px 20px;
+  padding: 40px 20px;
   max-width: 400px;
   margin: 0 auto;
 }
 
 .empty-icon {
-  font-size: 48px;
-  margin-bottom: 24px;
-  opacity: 0.6;
+  font-size: 40px;
+  margin-bottom: 16px;
+  opacity: 0.7;
 }
 
 .empty-title {
-  margin: 0 0 12px 0;
-  font-size: 20px;
-  font-weight: 600;
-  color: #1f2937;
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: bold;
+  color: #000;
 }
 
 .empty-message {
-  margin: 0 0 32px 0;
-  font-size: 16px;
-  color: #6b7280;
-  line-height: 1.5;
+  margin: 0 0 20px 0;
+  font-size: 12px;
+  color: #000;
+  line-height: 1.4;
   max-width: 300px;
 }
 
@@ -127,24 +127,19 @@ const defaultMessage = computed(() => {
 }
 
 .action-button {
-  background: #3b82f6;
-  color: white;
+  background: #c0c0c0;
+  color: #000;
   border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
+  padding: 6px 16px;
+  font-size: 11px;
+  font-weight: normal;
   cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.action-button:hover {
-  background: #2563eb;
-  transform: translateY(-1px);
+  transition: none;
+  box-shadow: inset -1px -1px 0 0 #000000, inset 1px 1px 0 0 #ffffff, inset -2px -2px 0 0 #808080, inset 2px 2px 0 0 #dfdfdf;
 }
 
 .action-button:active {
-  transform: translateY(0);
+  box-shadow: inset 1px 1px 0 0 #000000, inset 0 0 0 1px #808080;
 }
 
 /* Responsive */

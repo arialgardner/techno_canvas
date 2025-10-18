@@ -74,8 +74,7 @@ const formattedTime = computed(() => {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -94,11 +93,11 @@ const formattedTime = computed(() => {
 }
 
 .modal-content {
-  background: white;
-  border-radius: 16px;
+  background: #c0c0c0;
+  border: 2px solid #000;
+  box-shadow: inset -1px -1px 0 0 #808080, inset 1px 1px 0 0 #ffffff;
   max-width: 480px;
   width: 100%;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   animation: slideUp 0.3s ease-out;
 }
 
@@ -115,45 +114,46 @@ const formattedTime = computed(() => {
 
 .recovery-modal {
   text-align: center;
-  padding: 32px;
+  padding: 16px;
 }
 
 .modal-icon {
-  width: 64px;
-  height: 64px;
-  margin: 0 auto 20px;
-  background: #fef3c7;
-  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 16px;
+  background: #ffff00;
+  border: 2px solid #000;
+  box-shadow: 2px 2px 0 0 #808080;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #f59e0b;
+  color: #000;
 }
 
 .modal-icon svg {
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
 }
 
 .modal-title {
-  font-size: 24px;
-  font-weight: 700;
-  color: #111827;
-  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: bold;
+  color: #000;
+  margin: 0 0 8px;
 }
 
 .modal-message {
-  font-size: 15px;
-  color: #6b7280;
-  margin: 0 0 24px;
-  line-height: 1.6;
+  font-size: 11px;
+  color: #000;
+  margin: 0 0 12px;
+  line-height: 1.4;
 }
 
 .recovery-info {
-  background: #f9fafb;
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 24px;
+  background: #fff;
+  border: 2px solid #808080;
+  padding: 8px;
+  margin-bottom: 12px;
 }
 
 .info-item {
@@ -163,44 +163,44 @@ const formattedTime = computed(() => {
 }
 
 .info-label {
-  font-size: 13px;
-  color: #6b7280;
-  font-weight: 500;
+  font-size: 10px;
+  color: #000;
+  font-weight: bold;
 }
 
 .info-value {
-  font-size: 13px;
-  color: #111827;
-  font-weight: 600;
+  font-size: 10px;
+  color: #000;
+  font-weight: normal;
 }
 
 .modal-actions {
   display: flex;
-  gap: 12px;
+  gap: 4px;
   justify-content: center;
 }
 
 .button-primary,
 .button-secondary {
-  padding: 12px 24px;
+  padding: 4px 12px;
   border: none;
-  border-radius: 8px;
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: normal;
   cursor: pointer;
-  transition: all 0.2s;
-  min-width: 120px;
+  transition: none;
+  min-width: 100px;
+  background: #c0c0c0;
+  color: #000;
+  box-shadow: inset -1px -1px 0 0 #000000, inset 1px 1px 0 0 #ffffff, inset -2px -2px 0 0 #808080, inset 2px 2px 0 0 #dfdfdf;
 }
 
 .button-primary {
-  background: #3b82f6;
-  color: white;
+  background: #000080;
+  color: #fff;
 }
 
-.button-primary:hover:not(:disabled) {
-  background: #2563eb;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+.button-primary:active:not(:disabled) {
+  box-shadow: inset 1px 1px 0 0 #000000, inset 0 0 0 1px #808080;
 }
 
 .button-primary:disabled {
@@ -209,13 +209,12 @@ const formattedTime = computed(() => {
 }
 
 .button-secondary {
-  background: #ffffff;
-  color: #000000;
-  border: 1px solid #d1d5db;
+  background: #c0c0c0;
+  color: #000;
 }
 
-.button-secondary:hover:not(:disabled) {
-  background: #e5e7eb;
+.button-secondary:active:not(:disabled) {
+  box-shadow: inset 1px 1px 0 0 #000000, inset 0 0 0 1px #808080;
 }
 
 .button-secondary:disabled {

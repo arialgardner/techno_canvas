@@ -109,31 +109,33 @@ const getErrorIcon = (type) => {
 /* Network Status Banner */
 .error-banner {
   width: 100%;
-  padding: 12px 20px;
+  padding: 8px 16px;
   pointer-events: auto;
   animation: slideDown 0.3s ease-out;
 }
 
 .network-error {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-  color: white;
-  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.3);
+  background: #ffff00;
+  color: #000;
+  border-top: 2px solid #000;
+  border-bottom: 2px solid #000;
+  box-shadow: inset 0 1px 0 0 #ffffff, inset 0 -1px 0 0 #808080;
 }
 
 .banner-content {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  font-weight: 500;
+  gap: 6px;
+  font-weight: bold;
 }
 
 .error-icon {
-  font-size: 16px;
+  font-size: 14px;
 }
 
 .error-text {
-  font-size: 14px;
+  font-size: 11px;
 }
 
 /* Toast Notifications */
@@ -149,74 +151,79 @@ const getErrorIcon = (type) => {
 }
 
 .toast {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  background: #c0c0c0;
   overflow: hidden;
   cursor: pointer;
   pointer-events: auto;
   position: relative;
-  border-left: 4px solid #6b7280;
+  border: 2px solid #000;
+  box-shadow: inset -1px -1px 0 0 #808080, inset 1px 1px 0 0 #ffffff;
+  border-left: 4px solid #808080;
 }
 
 .toast-network {
-  border-left-color: #f59e0b;
+  border-left-color: #ffff00;
+  background: #ffffe0;
 }
 
 .toast-auth {
-  border-left-color: #ef4444;
+  border-left-color: #ff0000;
+  background: #ffe0e0;
 }
 
 .toast-firestore {
-  border-left-color: #3b82f6;
+  border-left-color: #0000ff;
+  background: #e0e0ff;
 }
 
 .toast-permission {
-  border-left-color: #dc2626;
+  border-left-color: #ff0000;
+  background: #ffe0e0;
 }
 
 .toast-validation {
-  border-left-color: #f59e0b;
+  border-left-color: #ffff00;
+  background: #ffffe0;
 }
 
 .toast-content {
-  padding: 16px;
+  padding: 10px 12px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .toast-icon {
-  font-size: 18px;
+  font-size: 14px;
   flex-shrink: 0;
 }
 
 .toast-message {
   flex: 1;
-  font-size: 14px;
-  color: #374151;
-  line-height: 1.4;
+  font-size: 11px;
+  color: #000;
+  line-height: 1.3;
 }
 
 .retry-btn {
-  background: #3b82f6;
-  color: white;
+  background: #c0c0c0;
+  color: #000;
   border: none;
-  padding: 6px 12px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: normal;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: none;
+  box-shadow: inset -1px -1px 0 0 #000000, inset 1px 1px 0 0 #ffffff, inset -2px -2px 0 0 #808080, inset 2px 2px 0 0 #dfdfdf;
 }
 
-.retry-btn:hover {
-  background: #2563eb;
+.retry-btn:active {
+  box-shadow: inset 1px 1px 0 0 #000000, inset 0 0 0 1px #808080;
 }
 
 .toast-progress {
-  height: 3px;
-  background: rgba(107, 114, 128, 0.2);
+  height: 2px;
+  background: #808080;
   position: relative;
   overflow: hidden;
 }
@@ -232,23 +239,23 @@ const getErrorIcon = (type) => {
 }
 
 .toast-network .toast-progress.animate::after {
-  background: #f59e0b;
+  background: #ff8000;
 }
 
 .toast-auth .toast-progress.animate::after {
-  background: #ef4444;
+  background: #ff0000;
 }
 
 .toast-firestore .toast-progress.animate::after {
-  background: #3b82f6;
+  background: #0000ff;
 }
 
 .toast-permission .toast-progress.animate::after {
-  background: #dc2626;
+  background: #ff0000;
 }
 
 .toast-validation .toast-progress.animate::after {
-  background: #f59e0b;
+  background: #ff8000;
 }
 
 /* Animations */
