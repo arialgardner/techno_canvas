@@ -1,0 +1,76 @@
+{
+  "rules": {
+    "canvases": {
+      "$canvasId": {
+        ".read": "auth != null",
+        
+        "cursors": {
+          "$userId": {
+            ".read": "auth != null",
+            ".write": "auth != null && auth.uid == $userId",
+            ".validate": "
+              newData.hasChildren(['x', 'y', 'userName', 'timestamp']) &&
+              newData.child('x').isNumber() &&
+              newData.child('y').isNumber() &&
+              newData.child('x').val() >= -10000 &&
+              newData.child('x').val() <= 20000 &&
+              newData.child('y').val() >= -10000 &&
+              newData.child('y').val() <= 20000 &&
+              newData.child('userName').isString() &&
+              newData.child('userName').val().length <= 100 &&
+              newData.child('timestamp').val() <= now + 60000
+            "
+          }
+        },
+        
+        "presence": {
+          "$userId": {
+            ".read": "auth != null",
+            ".write": "auth != null && auth.uid == $userId",
+            ".validate": "
+              newData.hasChildren(['userId', 'userName', 'online']) &&
+              newData.child('userId').val() == $userId &&
+              newData.child('userName').isString() &&
+              newData.child('userName').val().length <= 100 &&
+              newData.child('online').isBoolean() &&
+              newData.child('lastSeen').isNumber()
+            "
+          }
+        },
+        
+        "operationLog": {
+          ".read": "auth != null",
+          "$operationId": {
+            ".write": "auth != null"
+          }
+        },
+        
+        "ephemeralShapes": {
+          ".read": "auth != null",
+          "$shapeId": {
+            ".write": "auth != null"
+          }
+        },
+        
+        "activeEdits": {
+          ".read": "auth != null",
+          "$shapeId": {
+            ".write": "auth != null"
+          }
+        },
+        
+        "acks": {
+          ".read": "auth != null",
+          "$operationId": {
+            ".write": "auth != null"
+          }
+        },
+        
+        "metadata": {
+          ".read": "auth != null",
+          ".write": "auth != null"
+        }
+      }
+    }
+  }
+}
