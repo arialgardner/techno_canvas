@@ -99,19 +99,6 @@
         </div>
 
         <div class="property-group">
-          <label class="property-label">Rotation</label>
-          <input
-            type="number"
-            :value="Math.round(selectedShapes[0].rotation || 0)"
-            @input="handlePropertyChange('rotation', parseFloat($event.target.value) % 360)"
-            min="0"
-            max="360"
-            class="property-input"
-          />
-          <span class="property-unit">degrees</span>
-        </div>
-
-        <div class="property-group">
           <label class="property-label">Z-Index</label>
           <input
             type="number"
@@ -290,19 +277,6 @@
         </div>
 
         <div class="property-group">
-          <label class="property-label">Rotation</label>
-          <input
-            type="number"
-            :value="Math.round(selectedShapes[0].rotation || 0)"
-            @input="handlePropertyChange('rotation', parseFloat($event.target.value) % 360)"
-            min="0"
-            max="360"
-            class="property-input"
-          />
-          <span class="property-unit">degrees</span>
-        </div>
-
-        <div class="property-group">
           <label class="property-label">Z-Index</label>
           <input
             type="number"
@@ -407,36 +381,6 @@
               title="Italic"
             >
               <em>I</em>
-            </button>
-          </div>
-        </div>
-
-        <div class="property-group">
-          <label class="property-label">Text Alignment</label>
-          <div class="button-group">
-            <button
-              @click="handlePropertyChange('align', 'left')"
-              :class="{ active: selectedShapes[0].align === 'left' }"
-              class="style-button"
-              title="Left"
-            >
-              ⬅
-            </button>
-            <button
-              @click="handlePropertyChange('align', 'center')"
-              :class="{ active: selectedShapes[0].align === 'center' }"
-              class="style-button"
-              title="Center"
-            >
-              ↔
-            </button>
-            <button
-              @click="handlePropertyChange('align', 'right')"
-              :class="{ active: selectedShapes[0].align === 'right' }"
-              class="style-button"
-              title="Right"
-            >
-              ➡
             </button>
           </div>
         </div>
@@ -675,33 +619,46 @@ let mruDebounceTimer = null;
 const handlePropertyChange = (property, value) => {
   if (props.selectedShapes.length === 0) return;
   
-  clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(() => {
-    // Special handling for rectangle rotation - need to update x,y to maintain visual position
-    if (property === 'rotation' && props.selectedShapes[0].type === 'rectangle') {
-      const rect = props.selectedShapes[0]
-      const { x: newX, y: newY } = calculateRectPositionAfterRotation(
-        rect.x,
-        rect.y,
-        rect.width,
-        rect.height,
-        value
-      )
-      
-      emit('update-property', {
-        shapeId: rect.id,
-        property,
-        value,
-        additionalUpdates: { x: newX, y: newY }
-      });
-    } else {
-      emit('update-property', {
-        shapeId: props.selectedShapes[0].id,
-        property,
-        value
-      });
-    }
-  }, 300); // 300ms debounce for text inputs
+  // Color changes should be immediate to update "Last Edited By" instantly
+  const isColorProperty = property === 'fill' || property === 'stroke';
+  
+  if (isColorProperty) {
+    // Immediate update for colors
+    emit('update-property', {
+      shapeId: props.selectedShapes[0].id,
+      property,
+      value
+    });
+  } else {
+    // Debounced update for other properties (like text inputs)
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      // Special handling for rectangle rotation - need to update x,y to maintain visual position
+      if (property === 'rotation' && props.selectedShapes[0].type === 'rectangle') {
+        const rect = props.selectedShapes[0]
+        const { x: newX, y: newY } = calculateRectPositionAfterRotation(
+          rect.x,
+          rect.y,
+          rect.width,
+          rect.height,
+          value
+        )
+        
+        emit('update-property', {
+          shapeId: rect.id,
+          property,
+          value,
+          additionalUpdates: { x: newX, y: newY }
+        });
+      } else {
+        emit('update-property', {
+          shapeId: props.selectedShapes[0].id,
+          property,
+          value
+        });
+      }
+    }, 300); // 300ms debounce for text inputs
+  }
 };
 
 const handleLinePointChange = (index, value) => {
@@ -738,14 +695,27 @@ const isValueConsistent = (property) => {
 };
 
 const handleBulkPropertyChange = (property, value) => {
-  clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(() => {
+  // Color changes should be immediate to update "Last Edited By" instantly
+  const isColorProperty = property === 'fill' || property === 'stroke';
+  
+  if (isColorProperty) {
+    // Immediate update for colors
     emit('bulk-update', {
       shapeIds: props.selectedShapes.map(s => s.id),
       property,
       value
     });
-  }, 300);
+  } else {
+    // Debounced update for other properties
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      emit('bulk-update', {
+        shapeIds: props.selectedShapes.map(s => s.id),
+        property,
+        value
+      });
+    }, 300);
+  }
 };
 
 const preventTyping = (event) => {

@@ -49,7 +49,7 @@
           
           <div v-else class="messages-list">
             <div
-              v-for="message in messages"
+              v-for="message in linkifiedMessages"
               :key="message.id"
               class="message-entry"
               :class="{ 'own-message': message.userId === user?.uid }"
@@ -58,7 +58,7 @@
                 <span class="username">{{ message.userName || 'Anonymous' }}</span>
                 <span class="timestamp">{{ formatTimestamp(message.createdAt) }}</span>
               </div>
-              <div class="message-body" v-html="linkifySpotifyUrls(message.message)"></div>
+              <div class="message-body" v-html="message.linkifiedText"></div>
             </div>
           </div>
         </div>
@@ -141,6 +141,16 @@ export default {
       return newMessage.value.trim().length > 0 && 
              newMessage.value.length <= 280 && 
              user.value
+    })
+    
+    // Computed property for linkified messages that reacts to cache updates
+    const linkifiedMessages = computed(() => {
+      // Access spotifyMetadataCache to ensure reactivity
+      const cache = spotifyMetadataCache.value
+      return messages.value.map(message => ({
+        ...message,
+        linkifiedText: linkifySpotifyUrls(message.message)
+      }))
     })
     
     // LocalStorage key for this canvas
@@ -421,6 +431,37 @@ export default {
     }
     
     // Linkify Spotify URLs in messages
+    // Cache for Spotify metadata (URL -> name)
+    const spotifyMetadataCache = ref({})
+    
+    // Fetch Spotify metadata from oEmbed API
+    const fetchSpotifyMetadata = async (url, type, id) => {
+      const cacheKey = `${type}:${id}`
+      
+      // Check cache first
+      if (spotifyMetadataCache.value[cacheKey]) {
+        return spotifyMetadataCache.value[cacheKey]
+      }
+      
+      try {
+        const oembedUrl = `https://open.spotify.com/oembed?url=https://open.spotify.com/${type}/${id}`
+        const response = await fetch(oembedUrl)
+        if (response.ok) {
+          const data = await response.json()
+          const name = data.title || `${type.charAt(0).toUpperCase() + type.slice(1)}`
+          spotifyMetadataCache.value[cacheKey] = name
+          return name
+        }
+      } catch (error) {
+        console.warn('[ChatLog] Could not fetch Spotify metadata:', error)
+      }
+      
+      // Fallback to generic name
+      const fallback = `${type.charAt(0).toUpperCase() + type.slice(1)}`
+      spotifyMetadataCache.value[cacheKey] = fallback
+      return fallback
+    }
+    
     const linkifySpotifyUrls = (text) => {
       if (!text) return ''
       
@@ -438,16 +479,32 @@ export default {
       
       // Replace Spotify URLs with clickable links
       const linkified = escaped.replace(spotifyUrlRegex, (url) => {
-        // Extract display text (shorten long URLs)
-        let displayText = url
+        // Extract type and ID
+        let type, id
         if (url.startsWith('https://')) {
           const urlParts = url.split('/')
-          const type = urlParts[3]
-          const id = urlParts[4]?.split('?')[0]
-          displayText = `🎵 ${type.charAt(0).toUpperCase() + type.slice(1)}: ${id?.substring(0, 10)}...`
+          type = urlParts[3]
+          id = urlParts[4]?.split('?')[0]
+        } else if (url.startsWith('spotify:')) {
+          const parts = url.split(':')
+          type = parts[1]
+          id = parts[2]
         }
         
-        return `<a href="#" class="spotify-link" data-spotify-url="${url}">${displayText}</a>`
+        const cacheKey = `${type}:${id}`
+        const cachedName = spotifyMetadataCache.value[cacheKey]
+        
+        // Use cached name or show loading/fetch asynchronously
+        let displayText = cachedName 
+          ? `🎵 ${cachedName}`
+          : `🎵 ${type.charAt(0).toUpperCase() + type.slice(1)}...`
+        
+        // Fetch metadata asynchronously if not cached
+        if (!cachedName) {
+          fetchSpotifyMetadata(url, type, id)
+        }
+        
+        return `<a href="#" class="spotify-link" data-spotify-url="${url}" data-spotify-key="${cacheKey}">${displayText}</a>`
       })
       
       return linkified
@@ -548,6 +605,7 @@ export default {
       isLoading,
       newMessage,
       canSubmit,
+      linkifiedMessages,
       toggleChat,
       closeChat,
       toggleMinimize,
@@ -555,8 +613,7 @@ export default {
       startDrag,
       handleExpandClick,
       sendChatMessage,
-      formatTimestamp,
-      linkifySpotifyUrls
+      formatTimestamp
     }
   }
 }

@@ -63,7 +63,7 @@ export const useFirestore = () => {
 
   // Execute queued operation (v3)
   const executeQueuedOperation = async (operation) => {
-    const { type, shapeId, canvasId, data, userId, sequenceNumber, id } = operation
+    const { type, shapeId, canvasId, data, userId, userName, sequenceNumber, id } = operation
     
     try {
       trackFirestoreOperation()
@@ -85,7 +85,8 @@ export const useFirestore = () => {
           ...data,
           sequenceNumber,  // Add sequence number
           lastModified: serverTimestamp(),
-          lastModifiedBy: userId
+          lastModifiedBy: userId,
+          lastModifiedByName: userName  // Include userName for lastModifiedByName
         }
         await updateDoc(docRef, updates)
       } else if (type === 'delete') {
@@ -179,7 +180,7 @@ export const useFirestore = () => {
   }
 
   // Generic update shape method (v3 enhanced with priority queue)
-  const updateShape = async (canvasId = 'default', shapeId, updates, userId = 'anonymous', options = {}) => {
+  const updateShape = async (canvasId = 'default', shapeId, updates, userId = 'anonymous', options = {}, userName = 'Anonymous') => {
     const {
       usePriorityQueue = true,  // Use priority queue by default
       priority = 'high',         // Default to high priority
@@ -203,6 +204,7 @@ export const useFirestore = () => {
         canvasId,
         data: updates,  // Delta updates only
         userId,
+        userName,  // Include userName for lastModifiedByName
         timestamp: Date.now()
       }
       await bridgeEnqueue(op, actualPriority)
@@ -220,7 +222,8 @@ export const useFirestore = () => {
       await updateDoc(docRef, {
         ...updates,
         lastModified: serverTimestamp(),
-        lastModifiedBy: userId
+        lastModifiedBy: userId,
+        lastModifiedByName: userName
       })
       
       // console.log(`Shape ${shapeId} updated in Firestore`)

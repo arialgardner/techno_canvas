@@ -1,6 +1,6 @@
 import { ref, readonly } from 'vue'
 
-// Shared state for music player
+// Shared state for playlist browser
 const isPlaying = ref(false)
 const currentTrackName = ref('')
 

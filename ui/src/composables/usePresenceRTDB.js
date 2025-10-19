@@ -89,6 +89,9 @@ export const usePresenceRTDB = () => {
       // Setup beforeunload handler for browser close
       setupBeforeUnloadHandler(canvasId, userId)
       
+      // Setup visibility change handler for stale cleanup
+      setupVisibilityHandler()
+      
     } catch (error) {
       console.error('Error setting user online (RTDB):', error)
       rtdbMonitoring.recordError('presence-online', error)
@@ -167,16 +170,25 @@ export const usePresenceRTDB = () => {
     }
   }
 
-  // Clean up stale presence entries (users who haven't sent heartbeat in 60+ seconds)
+  // Clean up stale presence entries (users who haven't sent heartbeat in 45+ seconds)
   const cleanupStalePresence = () => {
     const now = Date.now()
-    const STALE_THRESHOLD = 60000 // 60 seconds (2x heartbeat interval)
+    const STALE_THRESHOLD = 45000 // 45 seconds (1.5x heartbeat interval)
     let hasChanges = false
     let removedCount = 0
     
     for (const [userId, presence] of activeUsers.entries()) {
-      if (presence.lastSeen && (now - presence.lastSeen > STALE_THRESHOLD)) {
-        console.log(`🧹 Removing stale presence (RTDB) for user: ${presence.userName || userId} (last seen: ${Math.round((now - presence.lastSeen) / 1000)}s ago)`)
+      // Only check staleness if we have a valid server timestamp (avoids clock skew issues)
+      if (presence.lastSeen && typeof presence.lastSeen === 'number') {
+        if (now - presence.lastSeen > STALE_THRESHOLD) {
+          console.log(`🧹 Removing stale presence (RTDB) for user: ${presence.userName || userId} (last seen: ${Math.round((now - presence.lastSeen) / 1000)}s ago)`)
+          activeUsers.delete(userId)
+          hasChanges = true
+          removedCount++
+        }
+      } else if (!presence.lastSeen) {
+        // If no lastSeen timestamp at all, this is invalid - remove it
+        console.log(`🧹 Removing presence with no timestamp: ${presence.userName || userId}`)
         activeUsers.delete(userId)
         hasChanges = true
         removedCount++
@@ -195,8 +207,12 @@ export const usePresenceRTDB = () => {
     // Clear any existing cleanup interval
     stopPresenceCleanup()
     
-    // Check for stale presence every 30 seconds
-    cleanupInterval = setInterval(cleanupStalePresence, 30000)
+    // Check for stale presence every 15 seconds for more responsive cleanup
+    cleanupInterval = setInterval(() => {
+      cleanupStalePresence()
+      // Force reactivity update every cleanup to ensure UI stays in sync
+      activeUsersVersion.value++
+    }, 15000)
     // console.log('Started periodic presence cleanup (RTDB)')
   }
 
@@ -212,15 +228,21 @@ export const usePresenceRTDB = () => {
   const subscribeToPresence = (canvasId = 'default', currentUserId) => {
     // If there's an existing subscription, unsubscribe first
     if (presenceUnsubscribe) {
-      // console.log('Unsubscribing from previous presence subscription (RTDB)')
+      console.log('🔄 Unsubscribing from previous presence subscription (RTDB)')
       presenceUnsubscribe()
       presenceUnsubscribe = null
-      // Note: Don't clear activeUsers here - let the new subscription update it
-      // This prevents UI flicker when reconnecting
+      
+      // Stop any running cleanup intervals to prevent duplicates
+      stopPresenceCleanup()
+      removeVisibilityHandler()
     }
 
     try {
       const presenceRef = getAllPresenceRef(canvasId)
+      
+      // Critical: First snapshot completely clears local state to ensure convergence
+      // This prevents different users from seeing different counts after reconnection
+      let isFirstSnapshot = true
       
       presenceUnsubscribe = onValue(presenceRef, (snapshot) => {
         const presenceData = snapshot.val() || {}
@@ -231,6 +253,20 @@ export const usePresenceRTDB = () => {
         
         // Get current user IDs from server
         const serverUserIds = new Set(Object.keys(presenceData))
+        
+        // On first snapshot (or reconnection), do a FULL clear and rebuild from server
+        // This ensures all users converge to the same state regardless of reconnection timing
+        if (isFirstSnapshot) {
+          console.log('🔄 Processing initial/reconnect presence snapshot - FULL STATE CLEAR')
+          const previousCount = activeUsers.size
+          
+          // COMPLETELY clear the local state to eliminate any stale data
+          activeUsers.clear()
+          console.log(`🧹 Cleared ${previousCount} local presence entries for clean sync`)
+          
+          // The code below will rebuild from fresh server data
+          isFirstSnapshot = false
+        }
         
         // Remove users that no longer exist on the server
         // This handles multiple users going offline simultaneously
@@ -257,26 +293,18 @@ export const usePresenceRTDB = () => {
           // Don't include current user in active users list
           if (userId === currentUserId) continue
           
-          // Debug: Log presence data for investigation
-          console.log(`🔍 Presence data for user ${userId}:`, {
-            canvasId: presence.canvasId,
-            expectedCanvasId: canvasId,
-            matches: presence.canvasId === canvasId,
-            userName: presence.userName,
-            online: presence.online
-          })
-          
           // Only process users for this specific canvas
           if (presence.canvasId !== canvasId) {
+            // Only log mismatches if they occur
             console.log(`⚠️ Skipping user ${userId} - canvasId mismatch: ${presence.canvasId} !== ${canvasId}`)
             continue
           }
           
-          // Convert timestamp if needed
+          // Convert timestamp - only use server timestamps to avoid clock skew
           const presenceObj = {
             ...presence,
-            lastSeen: presence.lastSeen || Date.now(),
-            joinedAt: presence.joinedAt || Date.now()
+            lastSeen: typeof presence.lastSeen === 'number' ? presence.lastSeen : null,
+            joinedAt: typeof presence.joinedAt === 'number' ? presence.joinedAt : null
           }
           
           // Only add users who are marked as online
@@ -297,11 +325,17 @@ export const usePresenceRTDB = () => {
           }
         }
         
-        // Force reactivity update if changes occurred
+        // Force reactivity update to ensure UI stays accurate
+        // Update even if no changes to handle edge cases
+        activeUsersVersion.value++
         if (hasChanges) {
-          activeUsersVersion.value++
           console.log(`📊 Presence updated: ${activeUsers.size} users online on canvas ${canvasId}`)
         }
+        
+        // Log summary for debugging convergence issues
+        const userNames = Array.from(activeUsers.values()).map(u => u.userName).join(', ')
+        console.log(`👥 Current users on canvas ${canvasId}: [${userNames}] (count: ${activeUsers.size})`)
+      
       }, (error) => {
         console.error('Error in presence subscription (RTDB):', error)
         rtdbMonitoring.recordError('presence-subscription', error)
@@ -309,6 +343,9 @@ export const usePresenceRTDB = () => {
       
       // Start periodic cleanup of stale presence
       startPresenceCleanup()
+      
+      // Setup visibility handler for stale cleanup
+      setupVisibilityHandler()
       
       // console.log(`Presence subscription started (RTDB) for canvas: ${canvasId}`)
       
@@ -318,6 +355,7 @@ export const usePresenceRTDB = () => {
           presenceUnsubscribe = null
         }
         stopPresenceCleanup()
+        removeVisibilityHandler()
       }
       
     } catch (error) {
@@ -366,6 +404,33 @@ export const usePresenceRTDB = () => {
     // console.log('Setup beforeunload handler for presence cleanup (RTDB)')
   }
 
+  // Visibility change handler to clean up stale users when tab becomes visible
+  let visibilityHandler = null
+  const setupVisibilityHandler = () => {
+    // Remove existing handler if any
+    if (visibilityHandler) {
+      document.removeEventListener('visibilitychange', visibilityHandler)
+    }
+    
+    // Create handler that checks for stale presence when tab becomes visible
+    visibilityHandler = () => {
+      if (document.visibilityState === 'visible') {
+        // User returned to tab - immediately check for stale presence
+        console.log('👁️ Tab became visible - checking for stale presence')
+        cleanupStalePresence()
+      }
+    }
+    
+    document.addEventListener('visibilitychange', visibilityHandler)
+  }
+
+  const removeVisibilityHandler = () => {
+    if (visibilityHandler) {
+      document.removeEventListener('visibilitychange', visibilityHandler)
+      visibilityHandler = null
+    }
+  }
+
   // Remove beforeunload handler
   const removeBeforeUnloadHandler = () => {
     if (beforeUnloadHandler) {
@@ -384,6 +449,9 @@ export const usePresenceRTDB = () => {
     
     // Remove beforeunload handler
     removeBeforeUnloadHandler()
+    
+    // Remove visibility handler
+    removeVisibilityHandler()
     
     // Unsubscribe from presence updates
     if (presenceUnsubscribe) {

@@ -238,10 +238,30 @@ export function useCanvasMouseEvents({
   }
 
   const handleWindowMouseUp = async (e) => {
+    // Handle group drag completion (multi-select drag)
+    if (isDraggingGroup.value) {
+      const pointer = stage.value.getNode().getPointerPosition()
+      if (pointer) {
+        const stageAttrs = stage.value.getNode().attrs
+        const canvasX = (pointer.x - stageAttrs.x) / stageAttrs.scaleX
+        const canvasY = (pointer.y - stageAttrs.y) / stageAttrs.scaleY
+        
+        const userId = user.value?.uid || 'anonymous'
+        await endGroupDrag(canvasX, canvasY, selectedShapeIds.value, updateShapesBatch, canvasId.value, userId, userName.value)
+        
+        if (canvasWrapper.value) {
+          canvasWrapper.value.style.cursor = 'default'
+        }
+        updateTransformer()
+      }
+    }
+    
+    // Finalize marquee selection
     if (isSelecting.value) {
       finalizeMarqueeSelection(shapesList.value)
     }
 
+    // End panning state
     if (isPanning.value || isDragging.value) {
       isDragging.value = false
       isPanning.value = false
@@ -254,6 +274,22 @@ export function useCanvasMouseEvents({
           canvasWrapper.value.style.cursor = 'default'
         }
       }
+    }
+    
+    // Stop any Konva shape dragging (individual shapes)
+    if (stage.value) {
+      const stageNode = stage.value.getNode()
+      // Find any shape that's currently being dragged
+      const allShapes = stageNode.find('Circle,Rect,Line,Text')
+      allShapes.forEach(shapeNode => {
+        try {
+          if (typeof shapeNode.isDragging === 'function' && shapeNode.isDragging()) {
+            shapeNode.stopDrag()
+          }
+        } catch (err) {
+          console.warn('Error stopping shape drag:', err)
+        }
+      })
     }
   }
 

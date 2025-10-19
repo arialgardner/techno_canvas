@@ -10,7 +10,7 @@
       @click="handleExpandClick" 
       @mousedown="startDrag"
       class="expand-btn" 
-      title="Open Music Player (drag to move)"
+      title="Open Playlist Browser (drag to move)"
     >
       ♫
     </button>
@@ -22,7 +22,7 @@
         class="title-bar"
         @mousedown="startDrag"
       >
-        <span class="title-text">♫ Music Player</span>
+        <span class="title-text">♫ Playlist Browser</span>
         <button 
           @click="isCollapsed = true" 
           @mousedown.stop

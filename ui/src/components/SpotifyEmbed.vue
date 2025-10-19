@@ -26,42 +26,8 @@
       </div>
     </div>
 
-    <!-- Login Prompt Modal -->
-    <div v-if="showLoginPrompt" class="login-prompt-overlay">
-      <div class="login-prompt-modal">
-        <div class="modal-header">
-          <span class="modal-title">♫ {{ selectedPlaylist?.name }}</span>
-          <button @click="closeLoginPrompt" class="close-btn">×</button>
-        </div>
-        
-        <div class="modal-content">
-          <div v-if="selectedPlaylist?.images?.[0]?.url" class="playlist-preview">
-            <img :src="selectedPlaylist.images[0].url" :alt="selectedPlaylist.name" />
-          </div>
-          
-          <p class="prompt-message">
-            Connect your Spotify account to listen to full songs and control playback!
-          </p>
-          
-          <div class="prompt-actions">
-            <button @click="handleConnectSpotify" class="connect-btn" :disabled="isConnecting">
-              <span v-if="isConnecting">Connecting...</span>
-              <span v-else>Connect to Spotify</span>
-            </button>
-            <button @click="playEmbedPreview" class="preview-btn">
-              Continue with Preview
-            </button>
-          </div>
-          
-          <p class="small-text">
-            Preview mode lets you listen to 30-second clips. Connect for full songs.
-          </p>
-        </div>
-      </div>
-    </div>
-
     <!-- Loading Playback State -->
-    <div v-else-if="isLoadingPlayback" class="loading-playback">
+    <div v-if="isLoadingPlayback" class="loading-playback">
       <div class="loading-window">
         <div class="loading-title-bar">
           <span class="loading-title">♫ Loading...</span>
@@ -84,7 +50,13 @@
     <!-- Currently Playing Embed -->
     <div v-else-if="currentEmbed" class="embed-player">
       <div class="embed-header">
-        <span class="now-playing">♫ {{ currentEmbedName }}</span>
+        <span 
+          class="now-playing" 
+          @contextmenu="handleEmbedTitleRightClick"
+          :title="currentEmbedName"
+        >
+          ♫ {{ currentEmbedName }}
+        </span>
         <button @click="closeEmbed" class="close-btn">×</button>
       </div>
       <iframe
@@ -140,6 +112,7 @@
           v-for="playlist in popularPlaylists" 
           :key="playlist.uri"
           @click="handlePlaylistClick(playlist)"
+          @contextmenu="(e) => handlePlaylistRightClick(e, playlist)"
           class="playlist-card"
         >
           <div class="playlist-image">
@@ -154,14 +127,29 @@
         </div>
       </div>
     </div>
+
+    <!-- Context Menu for Playlists -->
+    <div 
+      v-if="contextMenu.visible"
+      class="playlist-context-menu"
+      :style="{
+        top: `${contextMenu.y}px`,
+        left: `${contextMenu.x}px`
+      }"
+      @click.stop="handleCopyLink"
+    >
+      <div class="menu-item">
+        <span class="menu-icon">🔗</span>
+        <span class="menu-label">Copy Link</span>
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
-import { ref, onMounted, watch, computed, provide, inject } from 'vue'
+import { ref, watch, computed, inject, onMounted, onUnmounted } from 'vue'
 import { getFunctions, httpsCallable } from 'firebase/functions'
 import { useRoute } from 'vue-router'
-import { useSpotifyAuth } from '../composables/useSpotifyAuth'
 import OpenAI from 'openai'
 
 const functions = getFunctions()
@@ -179,14 +167,16 @@ export default {
     const route = useRoute()
     const canvasId = computed(() => route.params.canvasId || 'default')
     
-    // Use Spotify Auth composable
-    const { isConnected, connectSpotify, startListening } = useSpotifyAuth()
-    
-    // Start listening for Spotify auth status
-    startListening()
-    
     // Inject expand function from SpotifySidebar
     const expandSpotifyPlayer = inject('expandSpotifyPlayer', null)
+    
+    // Context menu state
+    const contextMenu = ref({
+      visible: false,
+      x: 0,
+      y: 0,
+      playlist: null
+    })
     
     // Canvas-specific localStorage keys
     const STORAGE_KEY_SEARCH = computed(() => `spotify-search-${canvasId.value}`)
@@ -208,11 +198,6 @@ export default {
     const isLoadingPlaylists = ref(false)
     const playlistError = ref(null)
     const openai = ref(null)
-    
-    // Login prompt state
-    const showLoginPrompt = ref(false)
-    const selectedPlaylist = ref(null)
-    const isConnecting = ref(false)
     
     // Loading state for playlist/track
     const isLoadingPlayback = ref(false)
@@ -401,73 +386,6 @@ Return ONLY the JSON array, no other text.`
       localStorage.setItem(STORAGE_KEY_QUICK_PICKS.value, JSON.stringify(newValue))
     }, { deep: true })
 
-    // Helper function to check and play pending playlist
-    const checkAndPlayPendingPlaylist = () => {
-      console.log('[SpotifyEmbed] Checking for pending playlist, isConnected:', isConnected.value)
-      
-      if (!isConnected.value) {
-        console.log('[SpotifyEmbed] Not connected, skipping pending playlist check')
-        return
-      }
-      
-      // Check if there's a pending playlist from pre-auth
-      const pendingPlaylistStr = sessionStorage.getItem('spotify_pending_playlist')
-      console.log('[SpotifyEmbed] Pending playlist data:', pendingPlaylistStr)
-      
-      if (pendingPlaylistStr) {
-        try {
-          const pendingPlaylist = JSON.parse(pendingPlaylistStr)
-          console.log('[SpotifyEmbed] Parsed pending playlist:', pendingPlaylist)
-          
-          // Only play if it's for this canvas
-          if (pendingPlaylist.canvasId === canvasId.value) {
-            console.log('[SpotifyEmbed] Canvas IDs match, auto-playing playlist')
-            
-            // Clear the pending playlist
-            sessionStorage.removeItem('spotify_pending_playlist')
-            
-            // Auto-play the playlist
-            playEmbed(pendingPlaylist.uri, pendingPlaylist.name)
-            
-            // Close login prompt if still open
-            showLoginPrompt.value = false
-            selectedPlaylist.value = null
-            
-            // Expand the player if it was minimized
-            if (expandSpotifyPlayer) {
-              console.log('[SpotifyEmbed] Expanding Spotify player')
-              expandSpotifyPlayer()
-            }
-          } else {
-            console.log('[SpotifyEmbed] Canvas ID mismatch, not playing. Expected:', canvasId.value, 'Got:', pendingPlaylist.canvasId)
-          }
-        } catch (error) {
-          console.error('[SpotifyEmbed] Error parsing pending playlist:', error)
-          sessionStorage.removeItem('spotify_pending_playlist')
-        }
-      }
-    }
-
-    // Watch for Spotify connection status to auto-play pending playlist
-    watch(isConnected, (connected) => {
-      console.log('[SpotifyEmbed] Connection status changed:', connected)
-      if (connected) {
-        // Small delay to ensure everything is ready
-        setTimeout(() => {
-          checkAndPlayPendingPlaylist()
-        }, 500)
-      }
-    })
-
-    // Check for pending playlist on mount (in case already connected)
-    onMounted(() => {
-      console.log('[SpotifyEmbed] Component mounted, checking for pending playlist')
-      // Small delay to ensure Spotify listener is set up
-      setTimeout(() => {
-        checkAndPlayPendingPlaylist()
-      }, 1000)
-    })
-
     // Watch for canvas changes and reload state
     watch(() => route.params.canvasId, (newCanvasId) => {
       // Load state for new canvas
@@ -483,68 +401,20 @@ Return ONLY the JSON array, no other text.`
       currentEmbed.value = newEmbed || null
       currentEmbedName.value = newName || ''
       
-      // Close login prompt if open
-      showLoginPrompt.value = false
-      selectedPlaylist.value = null
       isLoadingPlaylists.value = false
       playlistError.value = null
     })
 
     const handlePlaylistClick = (playlist) => {
-      // If already connected to Spotify, play directly
-      if (isConnected.value) {
-        playEmbed(playlist.uri, playlist.name)
-      } else {
-        // Show login prompt
-        selectedPlaylist.value = playlist
-        showLoginPrompt.value = true
-      }
-    }
-
-    const handleConnectSpotify = async () => {
-      isConnecting.value = true
-      try {
-        // Save the playlist user wants to play for after auth
-        if (selectedPlaylist.value) {
-          const pendingData = {
-            uri: selectedPlaylist.value.uri,
-            name: selectedPlaylist.value.name,
-            canvasId: canvasId.value
-          }
-          console.log('[SpotifyEmbed] Saving pending playlist before auth:', pendingData)
-          sessionStorage.setItem('spotify_pending_playlist', JSON.stringify(pendingData))
-        }
-        
-        console.log('[SpotifyEmbed] Initiating Spotify connection')
-        await connectSpotify()
-        // After successful connection, user will be redirected
-        // They can resume listening when they return
-      } catch (error) {
-        console.error('[SpotifyEmbed] Failed to connect to Spotify:', error)
-        alert('Failed to connect to Spotify. Please try again.')
-      } finally {
-        isConnecting.value = false
-      }
-    }
-
-    const playEmbedPreview = () => {
-      if (selectedPlaylist.value) {
-        playEmbed(selectedPlaylist.value.uri, selectedPlaylist.value.name)
-        showLoginPrompt.value = false
-        selectedPlaylist.value = null
-      }
-    }
-
-    const closeLoginPrompt = () => {
-      showLoginPrompt.value = false
-      selectedPlaylist.value = null
+      // Play embed preview directly
+      playEmbed(playlist.uri, playlist.name)
     }
 
     const playEmbed = (uri, name) => {
       // Convert Spotify URI to embed URL
       // Supports both formats:
       // - spotify:type:id (e.g., spotify:playlist:37i9dQZF1DXcBWIGoYBM5M) - from chat links
-      // - type:id (e.g., playlist:37i9dQZF1DXcBWIGoYBM5M) - from music player
+      // - type:id (e.g., playlist:37i9dQZF1DXcBWIGoYBM5M) - from playlist browser
       
       const parts = uri.split(':')
       let type, id
@@ -649,27 +519,35 @@ Return ONLY the JSON array, no other text.`
           return false
         }
         
+        // Show loading immediately with generic name
+        const genericName = `${type.charAt(0).toUpperCase() + type.slice(1)}`
+        currentEmbedName.value = genericName
+        isLoadingPlayback.value = true
+        
+        // Expand the Spotify player first (so loading screen is visible)
+        if (expandSpotifyPlayer) {
+          expandSpotifyPlayer()
+        }
+        
         // Convert to Spotify URI format
         const uri = `spotify:${type}:${id}`
         
         // Fetch the actual name from Spotify's oEmbed API (public, no auth required)
-        let name = `${type.charAt(0).toUpperCase() + type.slice(1)}`
+        let name = genericName
         try {
           const oembedUrl = `https://open.spotify.com/oembed?url=https://open.spotify.com/${type}/${id}`
           const response = await fetch(oembedUrl)
           if (response.ok) {
             const data = await response.json()
             name = data.title || name
+            // Update the name while loading
+            currentEmbedName.value = name
           }
         } catch (error) {
           console.warn('[SpotifyEmbed] Could not fetch name from oEmbed:', error)
           // Fall back to generic name
           name = `${type.charAt(0).toUpperCase() + type.slice(1)} (${id.substring(0, 8)}...)`
-        }
-        
-        // Expand the Spotify player first
-        if (expandSpotifyPlayer) {
-          expandSpotifyPlayer()
+          currentEmbedName.value = name
         }
         
         // Play the embed
@@ -678,12 +556,106 @@ Return ONLY the JSON array, no other text.`
         return true
       } catch (error) {
         console.error('Error loading playlist from URL:', error)
+        isLoadingPlayback.value = false
         return false
       }
     }
     
     // Note: loadPlaylistFromUrl is exposed in return statement below
     // and re-provided by SpotifySidebar for sibling components (ChatLog)
+    
+    // Handle right-click on playlist
+    const handlePlaylistRightClick = (event, playlist) => {
+      event.preventDefault()
+      event.stopPropagation()
+      
+      // Set context menu position and playlist
+      contextMenu.value = {
+        visible: true,
+        x: event.clientX,
+        y: event.clientY,
+        playlist
+      }
+    }
+    
+    // Handle right-click on embed title (currently playing)
+    const handleEmbedTitleRightClick = (event) => {
+      event.preventDefault()
+      event.stopPropagation()
+      
+      if (!currentEmbed.value) return
+      
+      // Extract type and id from embed URL
+      // Format: https://open.spotify.com/embed/playlist/37i9dQZF1DXcBWIGoYBM5M?utm_source=generator&theme=0
+      const embedUrl = currentEmbed.value
+      const match = embedUrl.match(/\/embed\/([^/]+)\/([^?]+)/)
+      
+      if (match) {
+        const type = match[1]
+        const id = match[2]
+        
+        // Create a fake playlist object for the context menu
+        contextMenu.value = {
+          visible: true,
+          x: event.clientX,
+          y: event.clientY,
+          playlist: {
+            uri: `${type}:${id}`,
+            name: currentEmbedName.value
+          }
+        }
+      }
+    }
+    
+    // Handle copy link
+    const handleCopyLink = async () => {
+      if (!contextMenu.value.playlist) return
+      
+      const playlist = contextMenu.value.playlist
+      
+      // Convert URI to Spotify URL
+      // playlist.uri format: "playlist:id" or "spotify:playlist:id"
+      const parts = playlist.uri.split(':')
+      let type, id
+      
+      if (parts.length === 3) {
+        // Format: spotify:type:id
+        type = parts[1]
+        id = parts[2]
+      } else if (parts.length === 2) {
+        // Format: type:id
+        type = parts[0]
+        id = parts[1]
+      }
+      
+      const url = `https://open.spotify.com/${type}/${id}`
+      
+      try {
+        await navigator.clipboard.writeText(url)
+        console.log('Playlist link copied:', url)
+      } catch (err) {
+        console.error('Failed to copy link:', err)
+      }
+      
+      // Close context menu
+      contextMenu.value.visible = false
+    }
+    
+    // Close context menu when clicking elsewhere
+    const handleGlobalClick = () => {
+      if (contextMenu.value.visible) {
+        contextMenu.value.visible = false
+      }
+    }
+    
+    // Add/remove global click listener
+    onMounted(() => {
+      document.addEventListener('click', handleGlobalClick)
+    })
+    
+    onUnmounted(() => {
+      document.removeEventListener('click', handleGlobalClick)
+    })
 
     return {
       searchQuery,
@@ -693,21 +665,18 @@ Return ONLY the JSON array, no other text.`
       popularPlaylists,
       isLoadingPlaylists,
       playlistError,
-      showLoginPrompt,
-      selectedPlaylist,
-      isConnecting,
-      isConnected,
       isLoadingPlayback,
       handlePlaylistClick,
-      handleConnectSpotify,
-      playEmbedPreview,
-      closeLoginPrompt,
       playEmbed,
       closeEmbed,
       handleSearch,
       handleQuickPick,
       loadDefaultPlaylists,
       loadPlaylistFromUrl,
+      contextMenu,
+      handlePlaylistRightClick,
+      handleEmbedTitleRightClick,
+      handleCopyLink,
     }
   }
 }
@@ -847,6 +816,8 @@ Return ONLY the JSON array, no other text.`
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  cursor: context-menu;
+  user-select: none;
 }
 
 .close-btn {
@@ -1188,139 +1159,45 @@ Return ONLY the JSON array, no other text.`
   margin-bottom: 8px; /* Reduce from 12px → saves 4px */
 }
 
-/* Login Prompt Modal */
-.login-prompt-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.9);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-  padding: 20px;
-}
-
-.login-prompt-modal {
+/* Playlist Context Menu */
+.playlist-context-menu {
+  position: fixed;
   background: #c0c0c0;
   border: 2px solid #ffffff;
   border-right-color: #808080;
   border-bottom-color: #808080;
   box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.4);
-  max-width: 400px;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.modal-header {
-  background: linear-gradient(90deg, #000080, #1084d0);
-  color: #ffffff;
-  padding: 6px 8px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-weight: bold;
+  min-width: 160px;
+  padding: 2px;
+  z-index: 10001; /* Above everything else */
+  font-family: 'Tahoma', 'MS Sans Serif', sans-serif;
   font-size: 11px;
+  user-select: none;
 }
 
-.modal-title {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex: 1;
-}
-
-.modal-content {
-  padding: 20px;
+.playlist-context-menu .menu-item {
   display: flex;
-  flex-direction: column;
-  gap: 16px;
   align-items: center;
-  text-align: center;
-}
-
-.playlist-preview {
-  width: 150px;
-  height: 150px;
-  border: 2px solid #808080;
-  overflow: hidden;
-}
-
-.playlist-preview img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.prompt-message {
-  font-size: 13px;
-  color: #000000;
-  margin: 0;
-  line-height: 1.5;
-}
-
-.prompt-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: 100%;
-}
-
-.connect-btn,
-.preview-btn {
-  padding: 10px 20px;
-  font-size: 12px;
-  font-weight: bold;
+  gap: 8px;
+  padding: 6px 8px;
   cursor: pointer;
-  border: 2px solid #ffffff;
-  border-right-color: #808080;
-  border-bottom-color: #808080;
-  width: 100%;
+  color: #000000;
 }
 
-.connect-btn {
+.playlist-context-menu .menu-item:hover {
   background: #000080;
   color: #ffffff;
 }
 
-.connect-btn:hover:not(:disabled) {
-  background: #0000a0;
+.playlist-context-menu .menu-icon {
+  font-size: 14px;
+  width: 16px;
+  text-align: center;
 }
 
-.connect-btn:active:not(:disabled) {
-  border: 2px solid #808080;
-  border-right-color: #ffffff;
-  border-bottom-color: #ffffff;
-}
-
-.connect-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.preview-btn {
-  background: #c0c0c0;
-  color: #000000;
-}
-
-.preview-btn:hover {
-  background: #d0d0d0;
-}
-
-.preview-btn:active {
-  border: 2px solid #808080;
-  border-right-color: #ffffff;
-  border-bottom-color: #ffffff;
-}
-
-.small-text {
-  font-size: 10px;
-  color: #808080;
-  margin: 0;
-  line-height: 1.4;
+.playlist-context-menu .menu-label {
+  flex: 1;
+  font-weight: normal;
 }
 </style>
 

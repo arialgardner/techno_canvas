@@ -22,6 +22,7 @@ import { validateGrayscaleColor } from '../utils/colorValidation'
 // Shared state (singleton) - defined outside composable function
 // Store shapes in a reactive Map for O(1) lookups
 const shapes = reactive(new Map())
+const shapesVersion = ref(0) // Version counter to force reactivity on shape updates
 const isLoading = ref(false)
 const error = ref(null)
 const isConnected = ref(true)
@@ -148,6 +149,7 @@ export const useShapes = () => {
 
       // Add to local state immediately (optimistic update)
       shapes.set(shape.id, shape)
+      shapesVersion.value++ // Increment version to trigger reactivity
 
       // Save to Firestore
       await saveShape(canvasId, shape)
@@ -207,6 +209,7 @@ export const useShapes = () => {
 
     // Update local state immediately (optimistic update)
     shapes.set(id, updatedShape)
+    shapesVersion.value++ // Increment version to trigger reactivity
     
     // v8: Create prediction for local update
     let predictionId = null
@@ -221,7 +224,7 @@ export const useShapes = () => {
         await updateShapeInFirestore(canvasId, id, updates, userId, {
           isFinal,  // High priority if final, low if interim
           usePriorityQueue: true
-        })
+        }, userName)
         
         // v8: Log operation for OT (only on final edits)
         let operationId = null
@@ -249,6 +252,7 @@ export const useShapes = () => {
             const currentShape = shapes.get(shapeId)
             if (currentShape) {
               shapes.set(shapeId, { ...currentShape, ...reverseDelta })
+              shapesVersion.value++ // Increment version to trigger reactivity
             }
           })
         }
@@ -278,11 +282,15 @@ export const useShapes = () => {
 
   // Remove shape (backward compatible)
   const removeRectangle = (id) => {
-    return shapes.delete(id)
+    const result = shapes.delete(id)
+    if (result) shapesVersion.value++ // Increment version to trigger reactivity
+    return result
   }
 
   const removeShape = (id) => {
-    return shapes.delete(id)
+    const result = shapes.delete(id)
+    if (result) shapesVersion.value++ // Increment version to trigger reactivity
+    return result
   }
 
   // Delete shapes from both local state and Firestore
@@ -296,6 +304,7 @@ export const useShapes = () => {
       
       // Optimistic local removal
       shapes.delete(shapeId)
+      shapesVersion.value++ // Increment version to trigger reactivity
       
       // Track deletion for v3
       trackShapeDeletion()
@@ -330,10 +339,12 @@ export const useShapes = () => {
   // Clear all shapes (backward compatible)
   const clearRectangles = () => {
     shapes.clear()
+    shapesVersion.value++ // Increment version to trigger reactivity
   }
 
   const clearShapes = () => {
     shapes.clear()
+    shapesVersion.value++ // Increment version to trigger reactivity
   }
 
   // Load shapes from Firestore and populate local state (backward compatible)
@@ -353,6 +364,7 @@ export const useShapes = () => {
       firestoreShapes.forEach(shape => {
         shapes.set(shape.id, shape)
       })
+      shapesVersion.value++ // Increment version to trigger reactivity
       
       console.log(`Loaded ${firestoreShapes.length} shapes from Firestore`)
       return firestoreShapes
@@ -401,6 +413,7 @@ export const useShapes = () => {
             // New shape from another user
             if (!shapes.has(shapeId)) {
               shapes.set(shapeId, shape)
+              shapesVersion.value++ // Increment version to trigger reactivity
               console.log(`Real-time: Shape ${shapeId} (${shape.type}) added`)
             }
           }
@@ -446,6 +459,7 @@ export const useShapes = () => {
                     const updatedShape = applyTransformedOperation(localShape, transformedOp)
                     if (updatedShape) {
                       shapes.set(shapeId, updatedShape)
+                      shapesVersion.value++ // Increment version to trigger reactivity
                       conflictDetection.markResolved()
                       console.log(`[OT] Applied transformed operation to shape ${shapeId}`)
                     }
@@ -463,17 +477,9 @@ export const useShapes = () => {
                 pendingRemoteUpdates.set(shapeId, shape)
               } else {
                 shapes.set(shapeId, shape)
+                shapesVersion.value++ // Increment version to trigger reactivity
               }
               console.log(`Real-time: Shape ${shapeId} (${shape.type}) updated`)
-              // Visual feedback trigger: mark recent editor for UI highlights
-              // Only highlight if edited by someone else, not by current user
-              const isOtherUser = currentUserId && shape.lastModifiedBy && shape.lastModifiedBy !== currentUserId
-              if (isOtherUser) {
-                const marked = { ...shape, __highlightUntil: Date.now() + 2000 }
-                shapes.set(shapeId, marked)
-                // Basic notification for awareness (optional, lightweight)
-                // info(`Edited by ${shape.lastModifiedBy || 'someone'}`)
-              }
             } else {
               console.log(`Real-time: Ignoring older update for shape ${shapeId}`)
               // If local is newer within 2s window, show conflict note
@@ -488,6 +494,7 @@ export const useShapes = () => {
             // Shape deleted
             if (shapes.has(shapeId)) {
               shapes.delete(shapeId)
+              shapesVersion.value++ // Increment version to trigger reactivity
               console.log(`Real-time: Shape ${shapeId} removed`)
             }
           }
@@ -577,6 +584,7 @@ export const useShapes = () => {
 
     // Update local state
     shapes.set(shapeId, { ...shape, ...updates })
+    shapesVersion.value++ // Increment version to trigger reactivity
 
     // Update Firestore
     try {
@@ -603,6 +611,7 @@ export const useShapes = () => {
 
     // Update local state
     shapes.set(shapeId, { ...shape, ...updates })
+    shapesVersion.value++ // Increment version to trigger reactivity
 
     // Update Firestore
     try {
@@ -776,6 +785,7 @@ export const useShapes = () => {
   return {
     // State
     shapes, // New primary state
+    shapesVersion, // Version counter for reactivity
     rectangles: shapes, // Backward compatible alias
     isLoading,
     error,

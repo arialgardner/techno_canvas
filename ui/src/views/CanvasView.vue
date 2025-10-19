@@ -215,7 +215,7 @@
       @close="showAIModal = false"
     />
 
-    <!-- Spotify Sidebar (v7: Always-visible music player) -->
+    <!-- Spotify Sidebar (v7: Always-visible playlist browser) -->
     <SpotifySidebar ref="spotifySidebarRef" />
 
     <!-- Chat Log Widget (room-specific chat) -->
@@ -351,6 +351,7 @@ export default {
     
     const { 
       shapes,
+      shapesVersion,
       createShape,
       updateShape,
       getAllShapes,
@@ -403,6 +404,7 @@ export default {
       setUserOffline,
       subscribeToPresence,
       getActiveUserCount,
+      cleanupStalePresence,
       cleanup: cleanupPresence
     } = usePresenceRTDB()
     
@@ -909,6 +911,24 @@ export default {
 
     // Global mouseup to finalize selection if user releases outside the stage
     const handleWindowMouseUp = async (e) => {
+      // Handle group drag completion (multi-select drag)
+      if (isDraggingGroup.value && stage.value) {
+        const pointer = stage.value.getNode().getPointerPosition()
+        if (pointer) {
+          const stageAttrs = stage.value.getNode().attrs
+          const canvasX = (pointer.x - stageAttrs.x) / stageAttrs.scaleX
+          const canvasY = (pointer.y - stageAttrs.y) / stageAttrs.scaleY
+          
+          const userId = user.value?.uid || 'anonymous'
+          await endGroupDrag(canvasX, canvasY, selectedShapeIds.value, updateShapesBatch, canvasId.value, userId, userName.value)
+          
+          if (canvasWrapper.value) {
+            canvasWrapper.value.style.cursor = 'default'
+          }
+          updateTransformer()
+        }
+      }
+      
       // Mirror finalize logic so selection commits on release without extra click
       if (isSelecting.value) {
         finalizeMarqueeSelection(shapesList.value)
@@ -928,6 +948,22 @@ export default {
             canvasWrapper.value.style.cursor = 'default'
           }
         }
+      }
+      
+      // Stop any Konva shape dragging (individual shapes)
+      if (stage.value) {
+        const stageNode = stage.value.getNode()
+        // Find any shape that's currently being dragged and stop it
+        const allShapes = stageNode.find('Circle,Rect,Line,Text')
+        allShapes.forEach(shapeNode => {
+          try {
+            if (typeof shapeNode.isDragging === 'function' && shapeNode.isDragging()) {
+              shapeNode.stopDrag()
+            }
+          } catch (err) {
+            console.warn('Error stopping shape drag:', err)
+          }
+        })
       }
     }
 
@@ -1193,6 +1229,8 @@ export default {
 
     // Computed properties for properties panel
     const selectedShapesData = computed(() => {
+      // Force reactivity by accessing shapesVersion (incremented on any shape update)
+      const _ = shapesVersion.value
       return selectedShapeIds.value.map(id => shapes.get(id)).filter(Boolean)
     })
 
@@ -1259,13 +1297,21 @@ export default {
           await setUserOnline(canvasId.value, userId, userName, cursorColor)
           console.log('✅ Presence re-established after reconnection')
           
-          // Re-subscribe to presence updates (this will refresh the user list)
+          // Re-subscribe to presence updates immediately
+          // The subscription's first snapshot will clear and rebuild from server state
           subscribeToPresence(canvasId.value, userId)
           console.log('✅ Presence subscription refreshed')
           
           // Re-subscribe to cursors
           subscribeToCursors(canvasId.value, userId)
           console.log('✅ Cursor subscription refreshed')
+          
+          // Force a stale cleanup check after reconnection settles
+          // This catches any edge cases where presence is still out of sync
+          setTimeout(() => {
+            console.log('🔄 Running post-reconnection cleanup check')
+            cleanupStalePresence()
+          }, 2000)
           
         } catch (error) {
           console.error('❌ Error re-establishing presence after reconnection:', error)

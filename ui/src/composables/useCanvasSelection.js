@@ -131,7 +131,7 @@ export function useCanvasSelection(stage, transformer, shapes) {
         break
       case 'line':
         transformerNode.enabledAnchors(['top-left', 'bottom-right'])
-        transformerNode.rotateEnabled(true)
+        transformerNode.rotateEnabled(false)
         transformerNode.boundBoxFunc(null)
         break
       case 'text':
