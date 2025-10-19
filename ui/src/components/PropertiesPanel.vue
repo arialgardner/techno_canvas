@@ -1,5 +1,5 @@
 <template>
-  <div class="properties-panel" v-if="isVisible">
+  <div class="properties-panel" :class="{ 'no-selection': !hasSelection }" v-if="isVisible">
     <!-- No Selection - Canvas Info -->
     <div v-if="!hasSelection" class="panel-section">
       <h3 class="panel-title">Canvas</h3>
@@ -800,6 +800,13 @@ const preventTyping = (event) => {
   padding: 8px;
   z-index: 99; /* Below navbar to avoid covering it */
   box-shadow: inset 1px 1px 0 0 #ffffff;
+}
+
+/* When no shape is selected, show only 1/4 height */
+.properties-panel.no-selection {
+  bottom: auto;
+  height: calc((100vh - 70px) / 4);
+  min-height: 120px;
 }
 
 /* Responsive width for smaller screens */

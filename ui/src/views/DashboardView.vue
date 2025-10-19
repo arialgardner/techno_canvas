@@ -609,15 +609,6 @@ const formatDate = (timestamp) => {
 
 .canvas-card {
   cursor: pointer;
-  transition: transform 0.1s;
-
-  &:hover {
-    transform: translate(-2px, -2px);
-  }
-
-  &:active {
-    transform: translate(0, 0);
-  }
 
   .header {
     display: flex;

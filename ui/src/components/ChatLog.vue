@@ -3,8 +3,10 @@
   <button 
     v-if="!isOpen"
     class="chat-toggle-button"
-    @click="toggleChat"
-    title="Open Chat"
+    :style="modalStyle"
+    @mousedown="startDrag"
+    @click="handleExpandClick"
+    title="Open Chat (drag to move)"
   >
     💬
   </button>
@@ -27,7 +29,6 @@
         <span class="title">💬 Room Chat</span>
         <div class="header-controls">
           <button class="minimize-btn" @click="toggleMinimize" title="Minimize">_</button>
-          <button class="close-btn" @click="closeChat" title="Close">×</button>
         </div>
       </div>
       
@@ -57,9 +58,7 @@
                 <span class="username">{{ message.userName || 'Anonymous' }}</span>
                 <span class="timestamp">{{ formatTimestamp(message.createdAt) }}</span>
               </div>
-              <div class="message-body">
-                {{ message.message }}
-              </div>
+              <div class="message-body" v-html="linkifySpotifyUrls(message.message)"></div>
             </div>
           </div>
         </div>
@@ -71,8 +70,7 @@
             :maxlength="280"
             placeholder="Type a message..."
             class="message-input"
-            @keydown.ctrl.enter="sendChatMessage"
-            @keydown.meta.enter="sendChatMessage"
+            @keydown.enter.prevent="sendChatMessage"
           ></textarea>
           <div class="input-footer">
             <span class="char-count">{{ newMessage.length }}/280</span>
@@ -91,7 +89,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick, inject } from 'vue'
 import { useAuth } from '../composables/useAuth'
 import { useChatLog } from '../composables/useChatLog'
 
@@ -107,23 +105,30 @@ export default {
     const { user } = useAuth()
     const { messages, isLoading, subscribeToMessages, sendMessage } = useChatLog()
     
+    // Inject Spotify playlist loader from SpotifyEmbed
+    const loadSpotifyPlaylist = inject('loadSpotifyPlaylist', null)
+    
     // Modal state
     const modalRef = ref(null)
     const messagesRef = ref(null)
     const isOpen = ref(false)
     const isMinimized = ref(false)
+    
+    // Calculate initial position (bottom-right corner)
+    const initialX = window.innerWidth - 420 // 400px width + 20px margin
+    const initialY = window.innerHeight - 520 // 500px height + 20px margin
+    
     const modalStyle = ref({
-      right: '20px',
-      bottom: '20px',
+      left: `${Math.max(20, initialX)}px`,
+      top: `${Math.max(70, initialY)}px`,
       zIndex: 900
     })
     
     // Dragging state
     const isDragging = ref(false)
-    const dragStartX = ref(0)
-    const dragStartY = ref(0)
-    const modalStartX = ref(0)
-    const modalStartY = ref(0)
+    const dragOffset = ref({ x: 0, y: 0 })
+    const hasMoved = ref(false)
+    const startPosition = ref({ x: 0, y: 0 })
     
     // Message input
     const newMessage = ref('')
@@ -175,13 +180,42 @@ export default {
       }
     }
     
+    // Adjust position to ensure window stays within viewport
+    const adjustPositionToFitViewport = () => {
+      nextTick(() => {
+        if (!modalRef.value) return
+        
+        const modalWidth = 400 // Fixed width from CSS
+        const modalHeight = isMinimized.value ? 40 : 500 // Approximate heights
+        
+        const currentLeft = parseInt(modalStyle.value.left) || 20
+        const currentTop = parseInt(modalStyle.value.top) || 70
+        
+        const viewportWidth = window.innerWidth
+        const viewportHeight = window.innerHeight
+        
+        // Constrain to viewport bounds
+        let newLeft = Math.max(0, Math.min(currentLeft, viewportWidth - modalWidth))
+        let newTop = Math.max(70, Math.min(currentTop, viewportHeight - modalHeight)) // Min 70px for navbar
+        
+        // Update position if adjustments were made
+        if (newLeft !== currentLeft || newTop !== currentTop) {
+          modalStyle.value.left = `${newLeft}px`
+          modalStyle.value.top = `${newTop}px`
+        }
+      })
+    }
+    
     // Toggle chat open/close
     const toggleChat = () => {
       isOpen.value = !isOpen.value
       saveState()
       
-      if (isOpen.value && !unsubscribe) {
-        loadMessages()
+      if (isOpen.value) {
+        adjustPositionToFitViewport()
+        if (!unsubscribe) {
+          loadMessages()
+        }
       }
     }
     
@@ -195,6 +229,11 @@ export default {
     const toggleMinimize = () => {
       isMinimized.value = !isMinimized.value
       saveState()
+      
+      // Adjust position when expanding (unminimizing)
+      if (!isMinimized.value) {
+        adjustPositionToFitViewport()
+      }
     }
     
     // Bring to front
@@ -202,22 +241,34 @@ export default {
       modalStyle.value.zIndex = 900
     }
     
-    // Dragging functionality
+    // Dragging functionality (matching SpotifySidebar pattern)
     const startDrag = (e) => {
-      // Don't drag if clicking buttons
+      // Don't drag if clicking buttons in the modal header
       if (e.target.classList.contains('close-btn') || 
           e.target.classList.contains('minimize-btn')) {
         return
       }
       
       isDragging.value = true
-      dragStartX.value = e.clientX
-      dragStartY.value = e.clientY
+      hasMoved.value = false
+      startPosition.value = { x: e.clientX, y: e.clientY }
       
-      // Get current modal position
-      const rect = modalRef.value.getBoundingClientRect()
-      modalStartX.value = window.innerWidth - rect.right
-      modalStartY.value = window.innerHeight - rect.bottom
+      // Calculate offset from mouse to element top-left
+      let rect
+      if (isOpen.value && modalRef.value) {
+        rect = modalRef.value.getBoundingClientRect()
+      } else {
+        // For toggle button
+        rect = e.currentTarget.getBoundingClientRect()
+      }
+      
+      dragOffset.value = {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      }
+      
+      // Prevent text selection while dragging
+      e.preventDefault()
       
       document.addEventListener('mousemove', onDrag)
       document.addEventListener('mouseup', stopDrag)
@@ -226,24 +277,52 @@ export default {
     const onDrag = (e) => {
       if (!isDragging.value) return
       
-      const deltaX = dragStartX.value - e.clientX
-      const deltaY = dragStartY.value - e.clientY
+      // Check if mouse has moved more than a few pixels (drag threshold)
+      const deltaX = Math.abs(e.clientX - startPosition.value.x)
+      const deltaY = Math.abs(e.clientY - startPosition.value.y)
       
-      const newRight = modalStartX.value + deltaX
-      const newBottom = modalStartY.value + deltaY
+      if (deltaX > 3 || deltaY > 3) {
+        hasMoved.value = true
+      }
       
-      // Keep within bounds
-      const clampedRight = Math.max(0, Math.min(newRight, window.innerWidth - 300))
-      const clampedBottom = Math.max(0, Math.min(newBottom, window.innerHeight - 100))
+      // Calculate new position
+      let newX = e.clientX - dragOffset.value.x
+      let newY = e.clientY - dragOffset.value.y
       
-      modalStyle.value.right = `${clampedRight}px`
-      modalStyle.value.bottom = `${clampedBottom}px`
+      // Get viewport dimensions
+      const viewportWidth = window.innerWidth
+      const viewportHeight = window.innerHeight
+      
+      // Get element dimensions
+      const buttonWidth = 50 // Toggle button width
+      const elementWidth = isOpen.value ? 400 : buttonWidth
+      const elementHeight = isOpen.value ? (isMinimized.value ? 40 : 500) : 50
+      
+      // Constrain to viewport bounds (same as SpotifySidebar)
+      newX = Math.max(0, Math.min(newX, viewportWidth - elementWidth))
+      newY = Math.max(70, Math.min(newY, viewportHeight - elementHeight)) // Min 70px for navbar
+      
+      modalStyle.value.left = `${newX}px`
+      modalStyle.value.top = `${newY}px`
     }
     
     const stopDrag = () => {
       isDragging.value = false
       document.removeEventListener('mousemove', onDrag)
       document.removeEventListener('mouseup', stopDrag)
+    }
+    
+    // Handle expand click (only if not dragged) - matches SpotifySidebar pattern
+    const handleExpandClick = (event) => {
+      if (hasMoved.value) {
+        // Was dragged, don't expand
+        event.preventDefault()
+        hasMoved.value = false
+        return
+      }
+      // Was clicked without dragging, open chat
+      toggleChat()
+      hasMoved.value = false
     }
     
     // Load messages
@@ -341,14 +420,90 @@ export default {
       }
     }
     
+    // Linkify Spotify URLs in messages
+    const linkifySpotifyUrls = (text) => {
+      if (!text) return ''
+      
+      // Escape HTML to prevent XSS
+      const escaped = text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;')
+      
+      // Regex to match Spotify URLs
+      // Matches: https://open.spotify.com/playlist/ID or spotify:playlist:ID
+      const spotifyUrlRegex = /(https?:\/\/open\.spotify\.com\/(?:playlist|track|album|artist)\/[a-zA-Z0-9]+(?:\?[^\s]*)?|spotify:(?:playlist|track|album|artist):[a-zA-Z0-9]+)/g
+      
+      // Replace Spotify URLs with clickable links
+      const linkified = escaped.replace(spotifyUrlRegex, (url) => {
+        // Extract display text (shorten long URLs)
+        let displayText = url
+        if (url.startsWith('https://')) {
+          const urlParts = url.split('/')
+          const type = urlParts[3]
+          const id = urlParts[4]?.split('?')[0]
+          displayText = `🎵 ${type.charAt(0).toUpperCase() + type.slice(1)}: ${id?.substring(0, 10)}...`
+        }
+        
+        return `<a href="#" class="spotify-link" data-spotify-url="${url}">${displayText}</a>`
+      })
+      
+      return linkified
+    }
+    
+    // Handle Spotify link clicks
+    const handleSpotifyLinkClick = async (event) => {
+      const target = event.target
+      if (target.classList.contains('spotify-link')) {
+        event.preventDefault()
+        const spotifyUrl = target.getAttribute('data-spotify-url')
+        
+        if (spotifyUrl && loadSpotifyPlaylist) {
+          const success = await loadSpotifyPlaylist(spotifyUrl)
+          if (!success) {
+            alert('Failed to load Spotify content. Please check the URL.')
+          }
+        } else {
+          alert('Spotify player not available')
+        }
+      }
+    }
+    
+    // Handle window resize to keep chat within viewport
+    const handleResize = () => {
+      if (isOpen.value && !isMinimized.value) {
+        adjustPositionToFitViewport()
+      }
+    }
+    
     // Lifecycle
     onMounted(() => {
       loadState()
       
-      if (isOpen.value) {
-        loadMessages()
-      }
+      // Listen for window resize
+      window.addEventListener('resize', handleResize)
     })
+    
+    // Watch for chat opening/closing to attach/detach Spotify link listener
+    watch(isOpen, async (newValue) => {
+      if (newValue) {
+        adjustPositionToFitViewport()
+        loadMessages()
+        
+        // Wait for DOM to update before attaching event listener
+        await nextTick()
+        if (messagesRef.value) {
+          messagesRef.value.addEventListener('click', handleSpotifyLinkClick)
+        }
+      } else {
+        // Clean up listener when chat closes
+        if (messagesRef.value) {
+          messagesRef.value.removeEventListener('click', handleSpotifyLinkClick)
+        }
+      }
+    }, { immediate: true })
     
     watch(() => props.canvasId, (newCanvasId, oldCanvasId) => {
       if (newCanvasId !== oldCanvasId) {
@@ -372,8 +527,14 @@ export default {
       if (unsubscribe) {
         unsubscribe()
       }
+      window.removeEventListener('resize', handleResize)
       document.removeEventListener('mousemove', onDrag)
       document.removeEventListener('mouseup', stopDrag)
+      
+      // Remove Spotify link click listener
+      if (messagesRef.value) {
+        messagesRef.value.removeEventListener('click', handleSpotifyLinkClick)
+      }
     })
     
     return {
@@ -392,8 +553,10 @@ export default {
       toggleMinimize,
       bringToFront,
       startDrag,
+      handleExpandClick,
       sendChatMessage,
-      formatTimestamp
+      formatTimestamp,
+      linkifySpotifyUrls
     }
   }
 }
@@ -402,27 +565,32 @@ export default {
 <style lang="scss" scoped>
 .chat-toggle-button {
   position: fixed;
-  bottom: 20px;
-  right: 20px;
-  width: 56px;
-  height: 56px;
-  font-size: 28px;
+  /* Position controlled by inline style (draggable) */
+  width: 48px;
+  height: 48px;
+  font-size: 24px;
   background: #c0c0c0;
-  border: none;
-  box-shadow: inset -1px -1px 0 0 #000000, inset 1px 1px 0 0 #ffffff, inset -2px -2px 0 0 #808080, inset 2px 2px 0 0 #dfdfdf;
-  cursor: pointer;
+  border: 2px solid #ffffff;
+  border-right-color: #808080;
+  border-bottom-color: #808080;
+  cursor: move;
   z-index: 800;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: none;
+  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  user-select: none;
+  transition: transform 0.1s;
   
   &:hover {
-    background: #d0d0d0;
+    transform: scale(1.05);
   }
   
   &:active {
-    box-shadow: inset 1px 1px 0 0 #000000, inset 0 0 0 1px #808080;
+    border: 2px solid #808080;
+    border-right-color: #ffffff;
+    border-bottom-color: #ffffff;
+    transform: scale(0.98);
   }
 }
 
@@ -432,7 +600,11 @@ export default {
   max-width: 90vw;
   display: flex;
   flex-direction: column;
-  box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.5);
+  background: #c0c0c0;
+  border: 2px solid #ffffff;
+  border-right-color: #808080;
+  border-bottom-color: #808080;
+  box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.4);
   
   &.minimized {
     height: auto;
@@ -450,12 +622,19 @@ export default {
   }
   
   .header {
+    background: linear-gradient(90deg, #000080, #1084d0);
+    color: #ffffff;
+    padding: 4px 8px;
     cursor: move;
     user-select: none;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding-right: 4px;
+    
+    .title {
+      font-weight: bold;
+      font-size: 12px;
+    }
     
     .header-controls {
       display: flex;
@@ -464,30 +643,32 @@ export default {
     
     .minimize-btn,
     .close-btn {
+      width: 18px;
+      height: 18px;
       background: #c0c0c0;
-      border: 2px outset #ffffff;
-      width: 24px;
-      height: 24px;
-      font-size: 18px;
-      line-height: 1;
+      color: #000;
+      border: 1px solid #ffffff;
+      border-right-color: #000000;
+      border-bottom-color: #000000;
       cursor: pointer;
+      font-size: 12px;
+      font-weight: bold;
+      line-height: 1;
       padding: 0;
       display: flex;
       align-items: center;
       justify-content: center;
       
-      &:hover {
-        background: #d0d0d0;
-      }
-      
       &:active {
-        border-style: inset;
+        border: 1px solid #000000;
+        border-right-color: #ffffff;
+        border-bottom-color: #ffffff;
       }
     }
     
     .minimize-btn {
-      font-size: 16px;
-      padding-bottom: 4px;
+      font-size: 14px;
+      padding-bottom: 2px;
     }
   }
 }
@@ -498,6 +679,8 @@ export default {
   gap: 12px;
   flex: 1;
   overflow: hidden;
+  padding: 12px;
+  background: #c0c0c0;
 }
 
 .messages-container {
@@ -608,6 +791,23 @@ export default {
     line-height: 1.4;
     word-wrap: break-word;
     white-space: pre-wrap;
+    
+    // Spotify link styling
+    :deep(.spotify-link) {
+      color: #1DB954; // Spotify green
+      text-decoration: underline;
+      cursor: pointer;
+      font-weight: bold;
+      
+      &:hover {
+        color: #1ed760;
+        background: rgba(29, 185, 84, 0.1);
+      }
+      
+      &:active {
+        color: #169c46;
+      }
+    }
   }
 }
 

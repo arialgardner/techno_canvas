@@ -348,8 +348,8 @@ const onMouseMove = (event) => {
   const panelWidth = 500
   const minVisibleHeight = 40 // Keep at least title bar visible
 
-  // Constrain to viewport bounds (allow dragging anywhere but keep title bar visible)
-  newX = Math.max(-panelWidth + 100, Math.min(newX, viewportWidth - 100)) // Keep 100px visible horizontally
+  // Constrain to viewport bounds - keep panel fully visible
+  newX = Math.max(0, Math.min(newX, viewportWidth - panelWidth)) // Cannot go past left edge, keep fully visible on right
   newY = Math.max(70, Math.min(newY, viewportHeight - minVisibleHeight)) // Min 70px for navbar, keep title bar visible
 
   position.value = { x: newX, y: newY }

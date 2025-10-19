@@ -43,6 +43,11 @@ export function useCanvasMouseEvents({
 }) {
   
   const handleMouseDown = async (e) => {
+    // Ignore right-clicks (button 2) - let context menu handle them
+    if (e.evt.button === 2) {
+      return
+    }
+    
     const clickedOnEmpty = e.target === stage.value.getNode()
     
     const pointer = stage.value.getNode().getPointerPosition()

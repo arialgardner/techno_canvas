@@ -11,10 +11,7 @@
     >
       <div class="inner">
         <!-- Title Bar -->
-        <div 
-          class="header"
-          @mousedown="startDrag"
-        >
+        <div class="header">
           <span class="title">📖 Guest Log</span>
           <button class="close-btn" @click="closeModal">×</button>
         </div>
@@ -34,8 +31,7 @@
               :maxlength="280"
               placeholder="Leave a message in the guest log..."
               class="message-input"
-              @keydown.ctrl.enter="submitEntry"
-              @keydown.meta.enter="submitEntry"
+              @keydown.enter.prevent="submitEntry"
             ></textarea>
             <div class="input-footer">
               <span class="char-count">{{ newMessage.length }}/280</span>
@@ -111,11 +107,6 @@ export default {
       transform: 'translate(-50%, -50%)',
       zIndex: 1000
     })
-    const isDragging = ref(false)
-    const dragStartX = ref(0)
-    const dragStartY = ref(0)
-    const modalStartX = ref(0)
-    const modalStartY = ref(0)
     
     // Messages
     const messagesRef = ref(null)
@@ -145,47 +136,6 @@ export default {
     
     const bringToFront = () => {
       modalStyle.value.zIndex = 1000
-    }
-    
-    // Dragging functionality
-    const startDrag = (e) => {
-      if (e.target.classList.contains('close-btn')) return
-      
-      isDragging.value = true
-      dragStartX.value = e.clientX
-      dragStartY.value = e.clientY
-      
-      // Get current modal position
-      const rect = modalRef.value.getBoundingClientRect()
-      modalStartX.value = rect.left
-      modalStartY.value = rect.top
-      
-      // Remove transform for absolute positioning
-      modalStyle.value.transform = 'none'
-      modalStyle.value.left = `${modalStartX.value}px`
-      modalStyle.value.top = `${modalStartY.value}px`
-      
-      document.addEventListener('mousemove', onDrag)
-      document.addEventListener('mouseup', stopDrag)
-    }
-    
-    const onDrag = (e) => {
-      if (!isDragging.value) return
-      
-      const deltaX = e.clientX - dragStartX.value
-      const deltaY = e.clientY - dragStartY.value
-      
-      const newLeft = modalStartX.value + deltaX
-      const newTop = modalStartY.value + deltaY
-      
-      modalStyle.value.left = `${newLeft}px`
-      modalStyle.value.top = `${newTop}px`
-    }
-    
-    const stopDrag = () => {
-      isDragging.value = false
-      document.removeEventListener('mousemove', onDrag)
-      document.removeEventListener('mouseup', stopDrag)
     }
     
     // Rate limiting
@@ -395,8 +345,6 @@ export default {
       if (cooldownInterval) {
         clearInterval(cooldownInterval)
       }
-      document.removeEventListener('mousemove', onDrag)
-      document.removeEventListener('mouseup', stopDrag)
     })
     
     return {
@@ -412,7 +360,6 @@ export default {
       canSubmit,
       closeModal,
       bringToFront,
-      startDrag,
       submitEntry,
       formatTimestamp
     }
@@ -450,8 +397,6 @@ export default {
   }
   
   .header {
-    cursor: move;
-    user-select: none;
     display: flex;
     align-items: center;
     justify-content: space-between;

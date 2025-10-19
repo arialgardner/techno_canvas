@@ -68,14 +68,14 @@ export default {
       }
     })
 
-    // Match text style to shape
+    // Match text style to shape (but use black text for readability)
     const textStyle = computed(() => {
       if (!props.textShape) return {}
       
       return {
         fontSize: `${props.textShape.fontSize}px`,
         fontFamily: props.textShape.fontFamily,
-        color: props.textShape.fill,
+        color: '#000000', // Always black for readability against white background
         fontWeight: props.textShape.fontStyle.includes('bold') ? 'bold' : 'normal',
         fontStyle: props.textShape.fontStyle.includes('italic') ? 'italic' : 'normal',
         textAlign: props.textShape.align,

@@ -18,7 +18,7 @@
           <!-- User Count -->
           <div class="user-count" @click="togglePresenceDropdown">
             <span class="count-badge">{{ activeUserCount + 1 }}</span>
-            <span class="count-text">users online</span>
+            <span class="count-text">{{ activeUserCount + 1 === 1 ? 'user online' : 'users online' }}</span>
             <svg 
               :class="{ 'rotated': showPresenceDropdown }" 
               class="dropdown-arrow" 

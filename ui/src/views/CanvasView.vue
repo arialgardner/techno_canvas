@@ -39,7 +39,7 @@
         v-if="!isLoading && shapesList.length === 0"
         type="canvas"
         :title="`Welcome to ${currentCanvas?.name || 'Untitled Room'}!`"
-        message="Enjoy your stay"
+        message="Enjoy your time"
         style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10; pointer-events: none;"
       />
 
@@ -153,16 +153,12 @@
         :is-visible="contextMenuVisible"
         :position="contextMenuPosition"
         :has-selection="selectedShapeIds.length > 0"
-        :has-clipboard="hasClipboard"
         @bring-to-front="handleContextBringToFront"
         @bring-forward="handleContextBringForward"
         @send-backward="handleContextSendBackward"
         @send-to-back="handleContextSendToBack"
         @duplicate="handleContextDuplicate"
-        @copy="handleContextCopy"
-        @paste="handleContextPaste"
         @delete="handleContextDelete"
-        @select-all="handleContextSelectAll"
         @close="handleCloseContextMenu"
       />
     </div>
@@ -220,7 +216,7 @@
     />
 
     <!-- Spotify Sidebar (v7: Always-visible music player) -->
-    <SpotifySidebar />
+    <SpotifySidebar ref="spotifySidebarRef" />
 
     <!-- Chat Log Widget (room-specific chat) -->
     <ChatLog :canvasId="canvasId" />
@@ -229,7 +225,7 @@
 </template>
 
 <script>
-import { ref, reactive, onMounted, onUnmounted, onBeforeUnmount, computed, watch, inject } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, onBeforeUnmount, computed, watch, inject, provide } from 'vue'
 import VueKonva from 'vue-konva'
 import Toolbar from '../components/Toolbar.vue'
 import ZoomControls from '../components/ZoomControls.vue'
@@ -316,6 +312,18 @@ export default {
     // Inject triggers from App.vue
     const versionHistoryTrigger = inject('versionHistoryTrigger', ref(0))
     const saveVersionTrigger = inject('saveVersionTrigger', ref(0))
+    
+    // Ref to SpotifySidebar for accessing child methods
+    const spotifySidebarRef = ref(null)
+    
+    // Provide Spotify playlist loader for ChatLog
+    // This bridges the connection between sibling components
+    provide('loadSpotifyPlaylist', async (url) => {
+      if (spotifySidebarRef.value?.spotifyEmbedRef?.loadPlaylistFromUrl) {
+        return await spotifySidebarRef.value.spotifyEmbedRef.loadPlaylistFromUrl(url)
+      }
+      return false
+    })
     
     // Composables
     const { user } = useAuth()
@@ -1568,6 +1576,7 @@ export default {
       canvasWrapper,
       shapeLayer,
       transformer,
+      spotifySidebarRef,
       
       // State
       stageConfig,
@@ -1589,7 +1598,6 @@ export default {
       // Context menu state
       contextMenuVisible,
       contextMenuPosition,
-      hasClipboard,
       // Confirmation modal state
       confirmModalVisible,
       confirmModalMessage,
@@ -1624,10 +1632,7 @@ export default {
       handleContextSendBackward,
       handleContextSendToBack,
       handleContextDuplicate,
-      handleContextCopy,
-      handleContextPaste,
       handleContextDelete,
-      handleContextSelectAll,
       // Confirmation modal handlers
       handleConfirmDelete,
       handleCancelDelete,

@@ -15,6 +15,12 @@ export function useContextMenu({
   const contextMenuPosition = reactive({ x: 0, y: 0 })
 
   const handleContextMenu = (e) => {
+    // Only show custom context menu if there's a selection
+    // Otherwise, allow default browser context menu
+    if (selectedShapeIds.value.length === 0) {
+      return
+    }
+    
     e.evt.preventDefault()
     contextMenuPosition.x = e.evt.clientX
     contextMenuPosition.y = e.evt.clientY

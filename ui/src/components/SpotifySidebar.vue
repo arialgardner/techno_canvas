@@ -35,14 +35,14 @@
 
       <!-- Player Content -->
       <div class="player-content">
-          <SpotifyEmbed />
+          <SpotifyEmbed ref="spotifyEmbedRef" />
         </div>
       </div>
   </div>
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted, watch, inject } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, provide } from 'vue'
 import { useRoute } from 'vue-router'
 import SpotifyEmbed from './SpotifyEmbed.vue'
 
@@ -52,6 +52,9 @@ export default {
     SpotifyEmbed
   },
   setup() {
+    // Ref to SpotifyEmbed child component
+    const spotifyEmbedRef = ref(null)
+    
     // Get canvasId from route to make storage per-canvas
     const route = useRoute()
     const canvasId = computed(() => route.params.canvasId || 'default')
@@ -157,6 +160,19 @@ export default {
       // Was clicked without dragging, expand
       isCollapsed.value = false
     }
+    
+    // Expand player programmatically (for external calls like chat links)
+    const expandPlayer = () => {
+      isCollapsed.value = false
+      // Save to localStorage
+      localStorage.setItem(STORAGE_KEY_COLLAPSED.value, 'false')
+    }
+    
+    // Provide expand function for child components (SpotifyEmbed)
+    provide('expandSpotifyPlayer', expandPlayer)
+    
+    // Note: loadSpotifyPlaylist is now provided by CanvasView (parent component)
+    // to make it accessible to sibling component ChatLog
 
     // Add/remove event listeners
     onMounted(() => {
@@ -199,6 +215,7 @@ export default {
       isCompactHeight,
       startDrag,
       handleExpandClick,
+      spotifyEmbedRef, // Expose for parent component (CanvasView) to access
     }
   }
 }

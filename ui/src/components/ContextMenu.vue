@@ -1,6 +1,6 @@
 <template>
   <div 
-    v-if="isVisible"
+    v-if="isVisible && hasSelection"
     class="context-menu"
     :style="{
       top: `${position.y}px`,
@@ -8,68 +8,45 @@
     }"
     @click.stop
   >
-    <template v-if="hasSelection">
-      <!-- Layer Operations -->
-      <div class="menu-section">
-        <div class="menu-item" @click="handleBringToFront">
-          <span class="menu-icon">⬆️</span>
-          <span class="menu-label">Bring to Front</span>
-          <span class="menu-shortcut">⌘]</span>
-        </div>
-        <div class="menu-item" @click="handleBringForward">
-          <span class="menu-icon">↑</span>
-          <span class="menu-label">Bring Forward</span>
-          <span class="menu-shortcut">⌘⇧]</span>
-        </div>
-        <div class="menu-item" @click="handleSendBackward">
-          <span class="menu-icon">↓</span>
-          <span class="menu-label">Send Backward</span>
-          <span class="menu-shortcut">⌘⇧[</span>
-        </div>
-        <div class="menu-item" @click="handleSendToBack">
-          <span class="menu-icon">⬇️</span>
-          <span class="menu-label">Send to Back</span>
-          <span class="menu-shortcut">⌘[</span>
-        </div>
+    <!-- Layer Operations -->
+    <div class="menu-section">
+      <div class="menu-item" @click="handleBringToFront">
+        <span class="menu-icon">⬆️</span>
+        <span class="menu-label">Bring to Front</span>
+        <span class="menu-shortcut">⌘]</span>
       </div>
-      
-      <div class="menu-divider"></div>
-      
-      <!-- Object Operations -->
-      <div class="menu-section">
-        <div class="menu-item" @click="handleDuplicate">
-          <span class="menu-icon">📋</span>
-          <span class="menu-label">Duplicate</span>
-          <span class="menu-shortcut">⌘D</span>
-        </div>
-        <div class="menu-item" @click="handleCopy">
-          <span class="menu-icon">📄</span>
-          <span class="menu-label">Copy</span>
-          <span class="menu-shortcut">⌘C</span>
-        </div>
-        <div class="menu-item" @click="handleDelete">
-          <span class="menu-icon">🗑️</span>
-          <span class="menu-label">Delete</span>
-          <span class="menu-shortcut">⌫</span>
-        </div>
+      <div class="menu-item" @click="handleBringForward">
+        <span class="menu-icon">↑</span>
+        <span class="menu-label">Bring Forward</span>
+        <span class="menu-shortcut">⌘⇧]</span>
       </div>
-    </template>
+      <div class="menu-item" @click="handleSendBackward">
+        <span class="menu-icon">↓</span>
+        <span class="menu-label">Send Backward</span>
+        <span class="menu-shortcut">⌘⇧[</span>
+      </div>
+      <div class="menu-item" @click="handleSendToBack">
+        <span class="menu-icon">⬇️</span>
+        <span class="menu-label">Send to Back</span>
+        <span class="menu-shortcut">⌘[</span>
+      </div>
+    </div>
     
-    <template v-else>
-      <!-- Empty Canvas Operations -->
-      <div class="menu-section">
-        <div class="menu-item" @click="handlePaste" :class="{ disabled: !hasClipboard }">
-          <span class="menu-icon">📋</span>
-          <span class="menu-label">Paste</span>
-          <span class="menu-shortcut">⌘V</span>
-        </div>
-        <div class="menu-item" @click="handleSelectAll">
-          <span class="menu-icon">☑️</span>
-          <span class="menu-label">Select All</span>
-          <span class="menu-shortcut">⌘A</span>
-        </div>
+    <div class="menu-divider"></div>
+    
+    <!-- Object Operations -->
+    <div class="menu-section">
+      <div class="menu-item" @click="handleDuplicate">
+        <span class="menu-icon">📋</span>
+        <span class="menu-label">Duplicate</span>
+        <span class="menu-shortcut">⌘D</span>
       </div>
-    </template>
+      <div class="menu-item" @click="handleDelete">
+        <span class="menu-icon">🗑️</span>
+        <span class="menu-label">Delete</span>
+        <span class="menu-shortcut">⌫</span>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -88,10 +65,6 @@ export default {
     hasSelection: {
       type: Boolean,
       default: false
-    },
-    hasClipboard: {
-      type: Boolean,
-      default: false
     }
   },
   emits: [
@@ -100,10 +73,7 @@ export default {
     'send-backward',
     'send-to-back',
     'duplicate',
-    'copy',
-    'paste',
     'delete',
-    'select-all',
     'close'
   ],
   methods: {
@@ -127,22 +97,8 @@ export default {
       this.$emit('duplicate')
       this.$emit('close')
     },
-    handleCopy() {
-      this.$emit('copy')
-      this.$emit('close')
-    },
-    handlePaste() {
-      if (this.hasClipboard) {
-        this.$emit('paste')
-        this.$emit('close')
-      }
-    },
     handleDelete() {
       this.$emit('delete')
-      this.$emit('close')
-    },
-    handleSelectAll() {
-      this.$emit('select-all')
       this.$emit('close')
     }
   }

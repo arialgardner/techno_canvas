@@ -6,7 +6,7 @@
         <input 
           v-model="searchQuery" 
           @keyup.enter="handleSearch"
-          placeholder="Enter music genre (e.g. techno, industrial techno, happy house music)"
+          placeholder="Search for music genres..."
           class="search-input"
         />
         <button @click="handleSearch" class="search-button">Search</button>
@@ -26,8 +26,42 @@
       </div>
     </div>
 
+    <!-- Login Prompt Modal -->
+    <div v-if="showLoginPrompt" class="login-prompt-overlay">
+      <div class="login-prompt-modal">
+        <div class="modal-header">
+          <span class="modal-title">♫ {{ selectedPlaylist?.name }}</span>
+          <button @click="closeLoginPrompt" class="close-btn">×</button>
+        </div>
+        
+        <div class="modal-content">
+          <div v-if="selectedPlaylist?.images?.[0]?.url" class="playlist-preview">
+            <img :src="selectedPlaylist.images[0].url" :alt="selectedPlaylist.name" />
+          </div>
+          
+          <p class="prompt-message">
+            Connect your Spotify account to listen to full songs and control playback!
+          </p>
+          
+          <div class="prompt-actions">
+            <button @click="handleConnectSpotify" class="connect-btn" :disabled="isConnecting">
+              <span v-if="isConnecting">Connecting...</span>
+              <span v-else>Connect to Spotify</span>
+            </button>
+            <button @click="playEmbedPreview" class="preview-btn">
+              Continue with Preview
+            </button>
+          </div>
+          
+          <p class="small-text">
+            Preview mode lets you listen to 30-second clips. Connect for full songs.
+          </p>
+        </div>
+      </div>
+    </div>
+
     <!-- Currently Playing Embed -->
-    <div v-if="currentEmbed" class="embed-player">
+    <div v-else-if="currentEmbed" class="embed-player">
       <div class="embed-header">
         <span class="now-playing">♫ {{ currentEmbedName }}</span>
         <button @click="closeEmbed" class="close-btn">×</button>
@@ -58,12 +92,18 @@
         <button @click="loadDefaultPlaylists" class="retry-btn">Retry</button>
       </div>
 
+      <!-- Empty State -->
+      <div v-else-if="popularPlaylists.length === 0" class="empty-state">
+        <div class="empty-icon">♫</div>
+        <p>Click a genre button above to discover playlists</p>
+      </div>
+
       <!-- Playlists Grid -->
       <div v-else class="playlist-grid">
         <div 
           v-for="playlist in popularPlaylists" 
           :key="playlist.uri"
-          @click="playEmbed(playlist.uri, playlist.name)"
+          @click="handlePlaylistClick(playlist)"
           class="playlist-card"
         >
           <div class="playlist-image">
@@ -82,8 +122,10 @@
 </template>
 
 <script>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed, provide, inject } from 'vue'
 import { getFunctions, httpsCallable } from 'firebase/functions'
+import { useRoute } from 'vue-router'
+import { useSpotifyAuth } from '../composables/useSpotifyAuth'
 import OpenAI from 'openai'
 
 const functions = getFunctions()
@@ -97,19 +139,32 @@ const OPENAI_CONFIG = {
 export default {
   name: 'SpotifyEmbed',
   setup() {
-    // LocalStorage keys
-    const STORAGE_KEY_SEARCH = 'spotify-last-search'
-    const STORAGE_KEY_SUGGESTIONS = 'spotify-genre-suggestions'
-    const STORAGE_KEY_PLAYLISTS = 'spotify-playlists'
-    const STORAGE_KEY_CURRENT_EMBED = 'spotify-current-embed'
-    const STORAGE_KEY_CURRENT_NAME = 'spotify-current-name'
+    // Get canvasId from route to make storage per-canvas
+    const route = useRoute()
+    const canvasId = computed(() => route.params.canvasId || 'default')
+    
+    // Use Spotify Auth composable
+    const { isConnected, connectSpotify, startListening } = useSpotifyAuth()
+    
+    // Start listening for Spotify auth status
+    startListening()
+    
+    // Inject expand function from SpotifySidebar
+    const expandSpotifyPlayer = inject('expandSpotifyPlayer', null)
+    
+    // Canvas-specific localStorage keys
+    const STORAGE_KEY_SEARCH = computed(() => `spotify-search-${canvasId.value}`)
+    const STORAGE_KEY_PLAYLISTS = computed(() => `spotify-playlists-${canvasId.value}`)
+    const STORAGE_KEY_QUICK_PICKS = computed(() => `spotify-buttons-${canvasId.value}`)
+    const STORAGE_KEY_CURRENT_EMBED = computed(() => `spotify-embed-${canvasId.value}`)
+    const STORAGE_KEY_CURRENT_NAME = computed(() => `spotify-name-${canvasId.value}`)
 
-    // Load saved state from localStorage
-    const savedSearch = localStorage.getItem(STORAGE_KEY_SEARCH)
-    const savedSuggestions = localStorage.getItem(STORAGE_KEY_SUGGESTIONS)
-    const savedPlaylists = localStorage.getItem(STORAGE_KEY_PLAYLISTS)
-    const savedEmbed = localStorage.getItem(STORAGE_KEY_CURRENT_EMBED)
-    const savedName = localStorage.getItem(STORAGE_KEY_CURRENT_NAME)
+    // Load saved state from localStorage for this canvas
+    const savedSearch = localStorage.getItem(STORAGE_KEY_SEARCH.value)
+    const savedPlaylists = localStorage.getItem(STORAGE_KEY_PLAYLISTS.value)
+    const savedQuickPicks = localStorage.getItem(STORAGE_KEY_QUICK_PICKS.value)
+    const savedEmbed = localStorage.getItem(STORAGE_KEY_CURRENT_EMBED.value)
+    const savedName = localStorage.getItem(STORAGE_KEY_CURRENT_NAME.value)
 
     const searchQuery = ref(savedSearch || '')
     const currentEmbed = ref(savedEmbed || null)
@@ -117,20 +172,28 @@ export default {
     const isLoadingPlaylists = ref(false)
     const playlistError = ref(null)
     const openai = ref(null)
+    
+    // Login prompt state
+    const showLoginPrompt = ref(false)
+    const selectedPlaylist = ref(null)
+    const isConnecting = ref(false)
 
-    // Restore playlists from localStorage
+    // Restore playlists from localStorage for this canvas
     const popularPlaylists = ref(
       savedPlaylists ? JSON.parse(savedPlaylists) : []
     )
 
-    // Quick picks for instant playback - Restore from localStorage or use defaults
+    // Default quick picks
+    const defaultQuickPicks = [
+      { name: 'Breakcore', query: 'breakcore' },
+      { name: 'Cyberpunk', query: 'cyberpunk' },
+      { name: 'Dreamcore', query: 'dreamcore' },
+      { name: 'Vaporwave', query: 'vaporwave' },
+    ]
+
+    // Quick picks - restore from localStorage or use defaults
     const quickPicks = ref(
-      savedSuggestions ? JSON.parse(savedSuggestions) : [
-        { name: 'Techno', query: 'techno' },
-        { name: 'Industrial Techno', query: 'industrial techno' },
-        { name: 'Minimal Techno', query: 'minimal techno' },
-        { name: 'Acid Techno', query: 'acid techno' },
-      ]
+      savedQuickPicks ? JSON.parse(savedQuickPicks) : defaultQuickPicks
     )
 
     // Initialize OpenAI client
@@ -216,10 +279,10 @@ Return ONLY the JSON array, no other text.`
     // Fallback default suggestions
     const getDefaultSuggestions = () => {
       return [
-        { name: 'Techno', query: 'techno' },
-        { name: 'House', query: 'house music' },
-        { name: 'Trance', query: 'trance music' },
-        { name: 'Electronic', query: 'electronic music' },
+        { name: 'Breakcore', query: 'breakcore' },
+        { name: 'Cyberpunk', query: 'cyberpunk' },
+        { name: 'Dreamcore', query: 'dreamcore' },
+        { name: 'Vaporwave', query: 'vaporwave' },
       ]
     }
 
@@ -252,7 +315,7 @@ Return ONLY the JSON array, no other text.`
       }
     }
 
-    // Handle quick pick clicks - search for that genre and update suggestions
+    // Handle quick pick clicks - search for that genre and update buttons with AI suggestions
     const handleQuickPick = async (pick) => {
       // Close current player if open
       currentEmbed.value = null
@@ -278,48 +341,129 @@ Return ONLY the JSON array, no other text.`
       }
     }
 
-    // Load playlists when component mounts (only if no saved data)
-    onMounted(() => {
-      if (!savedPlaylists) {
-        loadDefaultPlaylists()
-      }
-    })
-
-    // Watch for state changes and persist to localStorage
+    // Watch for state changes and persist to localStorage (per canvas)
     watch(searchQuery, (newValue) => {
       if (newValue) {
-        localStorage.setItem(STORAGE_KEY_SEARCH, newValue)
+        localStorage.setItem(STORAGE_KEY_SEARCH.value, newValue)
       } else {
-        localStorage.removeItem(STORAGE_KEY_SEARCH)
+        localStorage.removeItem(STORAGE_KEY_SEARCH.value)
       }
     })
 
-    watch(quickPicks, (newValue) => {
-      localStorage.setItem(STORAGE_KEY_SUGGESTIONS, JSON.stringify(newValue))
+    watch(popularPlaylists, (newValue) => {
+      if (newValue.length > 0) {
+        localStorage.setItem(STORAGE_KEY_PLAYLISTS.value, JSON.stringify(newValue))
+      } else {
+        localStorage.removeItem(STORAGE_KEY_PLAYLISTS.value)
+      }
     }, { deep: true })
 
-    watch(popularPlaylists, (newValue) => {
-      localStorage.setItem(STORAGE_KEY_PLAYLISTS, JSON.stringify(newValue))
+    watch(quickPicks, (newValue) => {
+      localStorage.setItem(STORAGE_KEY_QUICK_PICKS.value, JSON.stringify(newValue))
     }, { deep: true })
+
+    // Watch for canvas changes and reload state
+    watch(() => route.params.canvasId, (newCanvasId) => {
+      // Load state for new canvas
+      const newSearch = localStorage.getItem(`spotify-search-${newCanvasId}`)
+      const newPlaylists = localStorage.getItem(`spotify-playlists-${newCanvasId}`)
+      const newQuickPicks = localStorage.getItem(`spotify-buttons-${newCanvasId}`)
+      const newEmbed = localStorage.getItem(`spotify-embed-${newCanvasId}`)
+      const newName = localStorage.getItem(`spotify-name-${newCanvasId}`)
+      
+      searchQuery.value = newSearch || ''
+      popularPlaylists.value = newPlaylists ? JSON.parse(newPlaylists) : []
+      quickPicks.value = newQuickPicks ? JSON.parse(newQuickPicks) : defaultQuickPicks
+      currentEmbed.value = newEmbed || null
+      currentEmbedName.value = newName || ''
+      
+      // Close login prompt if open
+      showLoginPrompt.value = false
+      selectedPlaylist.value = null
+      isLoadingPlaylists.value = false
+      playlistError.value = null
+    })
+
+    const handlePlaylistClick = (playlist) => {
+      // If already connected to Spotify, play directly
+      if (isConnected.value) {
+        playEmbed(playlist.uri, playlist.name)
+      } else {
+        // Show login prompt
+        selectedPlaylist.value = playlist
+        showLoginPrompt.value = true
+      }
+    }
+
+    const handleConnectSpotify = async () => {
+      isConnecting.value = true
+      try {
+        await connectSpotify()
+        // After successful connection, user will be redirected
+        // They can resume listening when they return
+      } catch (error) {
+        console.error('Failed to connect to Spotify:', error)
+        alert('Failed to connect to Spotify. Please try again.')
+      } finally {
+        isConnecting.value = false
+      }
+    }
+
+    const playEmbedPreview = () => {
+      if (selectedPlaylist.value) {
+        playEmbed(selectedPlaylist.value.uri, selectedPlaylist.value.name)
+        showLoginPrompt.value = false
+        selectedPlaylist.value = null
+      }
+    }
+
+    const closeLoginPrompt = () => {
+      showLoginPrompt.value = false
+      selectedPlaylist.value = null
+    }
 
     const playEmbed = (uri, name) => {
       // Convert Spotify URI to embed URL
-      const [type, id] = uri.split(':')
+      // Supports both formats:
+      // - spotify:type:id (e.g., spotify:playlist:37i9dQZF1DXcBWIGoYBM5M) - from chat links
+      // - type:id (e.g., playlist:37i9dQZF1DXcBWIGoYBM5M) - from music player
+      
+      const parts = uri.split(':')
+      let type, id
+      
+      if (parts.length === 3) {
+        // Format: spotify:type:id
+        type = parts[1]
+        id = parts[2]
+      } else if (parts.length === 2) {
+        // Format: type:id
+        type = parts[0]
+        id = parts[1]
+      } else {
+        console.error('[SpotifyEmbed] Invalid URI format:', uri)
+        return
+      }
+      
+      // Remove any query parameters from the ID (e.g., ?si=...)
+      if (id && id.includes('?')) {
+        id = id.split('?')[0]
+      }
+      
       currentEmbed.value = `https://open.spotify.com/embed/${type}/${id}?utm_source=generator&theme=0`
       currentEmbedName.value = name
       
-      // Save to localStorage
-      localStorage.setItem(STORAGE_KEY_CURRENT_EMBED, currentEmbed.value)
-      localStorage.setItem(STORAGE_KEY_CURRENT_NAME, currentEmbedName.value)
+      // Save to localStorage for this canvas
+      localStorage.setItem(STORAGE_KEY_CURRENT_EMBED.value, currentEmbed.value)
+      localStorage.setItem(STORAGE_KEY_CURRENT_NAME.value, currentEmbedName.value)
     }
 
     const closeEmbed = () => {
       currentEmbed.value = null
       currentEmbedName.value = ''
       
-      // Clear from localStorage
-      localStorage.removeItem(STORAGE_KEY_CURRENT_EMBED)
-      localStorage.removeItem(STORAGE_KEY_CURRENT_NAME)
+      // Clear from localStorage for this canvas
+      localStorage.removeItem(STORAGE_KEY_CURRENT_EMBED.value)
+      localStorage.removeItem(STORAGE_KEY_CURRENT_NAME.value)
     }
 
     const handleSearch = async () => {
@@ -349,6 +493,71 @@ Return ONLY the JSON array, no other text.`
       }
     }
 
+    // Function to load playlist from URL (for chat links)
+    const loadPlaylistFromUrl = async (url) => {
+      try {
+        // Parse Spotify URL to extract type and ID
+        // Supports formats:
+        // - https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M
+        // - https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M?si=...
+        // - spotify:playlist:37i9dQZF1DXcBWIGoYBM5M
+        
+        let type, id
+        
+        if (url.startsWith('spotify:')) {
+          // Handle spotify: URI format
+          const parts = url.split(':')
+          type = parts[1]
+          id = parts[2]
+        } else {
+          // Handle https://open.spotify.com URL format
+          const urlObj = new URL(url)
+          const pathParts = urlObj.pathname.split('/').filter(Boolean)
+          type = pathParts[0] // playlist, track, album, etc.
+          id = pathParts[1]
+        }
+        
+        if (!type || !id) {
+          console.error('[SpotifyEmbed] Invalid Spotify URL:', url)
+          return false
+        }
+        
+        // Convert to Spotify URI format
+        const uri = `spotify:${type}:${id}`
+        
+        // Fetch the actual name from Spotify's oEmbed API (public, no auth required)
+        let name = `${type.charAt(0).toUpperCase() + type.slice(1)}`
+        try {
+          const oembedUrl = `https://open.spotify.com/oembed?url=https://open.spotify.com/${type}/${id}`
+          const response = await fetch(oembedUrl)
+          if (response.ok) {
+            const data = await response.json()
+            name = data.title || name
+          }
+        } catch (error) {
+          console.warn('[SpotifyEmbed] Could not fetch name from oEmbed:', error)
+          // Fall back to generic name
+          name = `${type.charAt(0).toUpperCase() + type.slice(1)} (${id.substring(0, 8)}...)`
+        }
+        
+        // Expand the Spotify player first
+        if (expandSpotifyPlayer) {
+          expandSpotifyPlayer()
+        }
+        
+        // Play the embed
+        playEmbed(uri, name)
+        
+        return true
+      } catch (error) {
+        console.error('Error loading playlist from URL:', error)
+        return false
+      }
+    }
+    
+    // Note: loadPlaylistFromUrl is exposed in return statement below
+    // and re-provided by SpotifySidebar for sibling components (ChatLog)
+
     return {
       searchQuery,
       currentEmbed,
@@ -357,10 +566,20 @@ Return ONLY the JSON array, no other text.`
       popularPlaylists,
       isLoadingPlaylists,
       playlistError,
+      showLoginPrompt,
+      selectedPlaylist,
+      isConnecting,
+      isConnected,
+      handlePlaylistClick,
+      handleConnectSpotify,
+      playEmbedPreview,
+      closeLoginPrompt,
       playEmbed,
       closeEmbed,
       handleSearch,
       handleQuickPick,
+      loadDefaultPlaylists,
+      loadPlaylistFromUrl,
     }
   }
 }
@@ -541,7 +760,8 @@ Return ONLY the JSON array, no other text.`
 }
 
 .loading-state,
-.error-state {
+.error-state,
+.empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -549,6 +769,11 @@ Return ONLY the JSON array, no other text.`
   padding: 40px;
   gap: 12px;
   color: #ffffff;
+}
+
+.empty-icon {
+  font-size: 64px;
+  opacity: 0.3;
 }
 
 .spinner {
@@ -684,6 +909,141 @@ Return ONLY the JSON array, no other text.`
 
 .compact-height .spotify-embed-container .search-bar {
   margin-bottom: 8px; /* Reduce from 12px → saves 4px */
+}
+
+/* Login Prompt Modal */
+.login-prompt-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 20px;
+}
+
+.login-prompt-modal {
+  background: #c0c0c0;
+  border: 2px solid #ffffff;
+  border-right-color: #808080;
+  border-bottom-color: #808080;
+  box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.4);
+  max-width: 400px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  background: linear-gradient(90deg, #000080, #1084d0);
+  color: #ffffff;
+  padding: 6px 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: bold;
+  font-size: 11px;
+}
+
+.modal-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.modal-content {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+  text-align: center;
+}
+
+.playlist-preview {
+  width: 150px;
+  height: 150px;
+  border: 2px solid #808080;
+  overflow: hidden;
+}
+
+.playlist-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.prompt-message {
+  font-size: 13px;
+  color: #000000;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.prompt-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.connect-btn,
+.preview-btn {
+  padding: 10px 20px;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  border: 2px solid #ffffff;
+  border-right-color: #808080;
+  border-bottom-color: #808080;
+  width: 100%;
+}
+
+.connect-btn {
+  background: #000080;
+  color: #ffffff;
+}
+
+.connect-btn:hover:not(:disabled) {
+  background: #0000a0;
+}
+
+.connect-btn:active:not(:disabled) {
+  border: 2px solid #808080;
+  border-right-color: #ffffff;
+  border-bottom-color: #ffffff;
+}
+
+.connect-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.preview-btn {
+  background: #c0c0c0;
+  color: #000000;
+}
+
+.preview-btn:hover {
+  background: #d0d0d0;
+}
+
+.preview-btn:active {
+  border: 2px solid #808080;
+  border-right-color: #ffffff;
+  border-bottom-color: #ffffff;
+}
+
+.small-text {
+  font-size: 10px;
+  color: #808080;
+  margin: 0;
+  line-height: 1.4;
 }
 </style>
 
