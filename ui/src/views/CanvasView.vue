@@ -7,7 +7,10 @@
     </div>
 
     <!-- Toolbar -->
-    <Toolbar @tool-selected="handleToolSelected" @open-ai-modal="showAIModal = true" />
+    <Toolbar 
+      @tool-selected="handleToolSelected" 
+      @open-ai-modal="showAIModal = true"
+    />
 
     <!-- Zoom Controls -->
     <ZoomControls 
@@ -36,7 +39,7 @@
         v-if="!isLoading && shapesList.length === 0"
         type="canvas"
         :title="`Welcome to ${currentCanvas?.name || 'Untitled Room'}!`"
-        message="Select a tool from the toolbar above and click on the canvas to create shapes"
+        message="Enjoy your stay"
         style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10; pointer-events: none;"
       />
 
@@ -209,6 +212,7 @@
       v-if="user"
       :visible="showAIModal"
       :context="aiContext"
+      :canvas-id="canvasId"
       @command-executed="handleAICommandExecuted"
       @utility-action="handleAIUtilityAction"
       @close="showAIModal = false"
@@ -216,6 +220,12 @@
 
     <!-- Spotify Sidebar (v7: Always-visible music player) -->
     <SpotifySidebar />
+
+    <!-- Chat Box (room-specific chat, always visible) -->
+    <ChatBox
+      v-if="user && canvasId && hasCanvasAccess"
+      :canvas-id="canvasId"
+    />
   </div>
 </template>
 
@@ -242,6 +252,7 @@ import RecoveryModal from '../components/RecoveryModal.vue'
 import VersionHistory from '../components/VersionHistory.vue'
 import AICommandPanel from '../components/AICommandPanel.vue'
 import SpotifySidebar from '../components/SpotifySidebar.vue'
+import ChatBox from '../components/ChatBox.vue'
 import { useShapes } from '../composables/useShapes'
 import { useFirestore } from '../composables/useFirestore' // v5: Batch operations
 import { getMaxZIndex, DEFAULT_SHAPE_PROPERTIES } from '../types/shapes'
@@ -297,7 +308,8 @@ export default {
     EmptyState,
     TestingDashboard,
     AICommandPanel,
-    SpotifySidebar
+    SpotifySidebar,
+    ChatBox
   },
   setup() {
     // Router
@@ -430,7 +442,22 @@ export default {
     const lastPointerPosition = reactive({ x: 0, y: 0 })
     const showVersionHistory = ref(false)
     const canRestoreVersions = computed(() => true) // owner-only checked via NavBar button visibility
-    const showAIModal = ref(false)
+    
+    // AI Panel state - load from localStorage to persist across refreshes (per-canvas)
+    const getAIPanelVisibleKey = (id) => `ai-panel-visible-${id}`
+    const savedAIPanelState = localStorage.getItem(getAIPanelVisibleKey(canvasId.value))
+    const showAIModal = ref(savedAIPanelState === 'true')
+    
+    // Watch for changes to AI panel visibility and save to localStorage (canvas-specific)
+    watch(showAIModal, (newValue) => {
+      localStorage.setItem(getAIPanelVisibleKey(canvasId.value), String(newValue))
+    })
+    
+    // Watch for canvas changes and reload AI panel visibility for the new canvas
+    watch(canvasId, (newCanvasId) => {
+      const savedState = localStorage.getItem(getAIPanelVisibleKey(newCanvasId))
+      showAIModal.value = savedState === 'true'
+    })
     
     // Viewer mode - computed based on canvas permissions
     const isViewerMode = computed(() => {
@@ -499,6 +526,13 @@ export default {
     const canUserEdit = computed(() => {
       if (!currentCanvas.value || !user.value) return false
       return canEditCanvas(currentCanvas.value, user.value.uid)
+    })
+    
+    // Check if user has any canvas access (owner, editor, or viewer)
+    const hasCanvasAccess = computed(() => {
+      if (!currentCanvas.value || !user.value) return false
+      const role = getUserRole(currentCanvas.value, user.value.uid)
+      return role !== null // User has any role
     })
 
     // Selection composable
@@ -1641,7 +1675,12 @@ export default {
       handleAIUtilityAction,
       user,
       // Canvas metadata
-      currentCanvas
+      currentCanvas,
+      canvasId,
+      // Panning state
+      isPanning,
+      // Canvas access check
+      hasCanvasAccess
     }
   }
 }

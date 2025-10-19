@@ -142,7 +142,9 @@
                 v-model="newCanvasName"
                 type="text"
                 placeholder="Enter room name"
+                maxlength="50"
                 @keyup.enter="handleCreateCanvas"
+                @blur="newCanvasName = newCanvasName.trim()"
               />
             </div>
 
@@ -152,7 +154,7 @@
               </button>
               <button
                 @click="handleCreateCanvas"
-                :disabled="!newCanvasName || isCreating"
+                :disabled="!isCreateNameValid || isCreating"
               >
                 {{ isCreating ? 'Creating...' : 'Create Room' }}
               </button>
@@ -177,7 +179,9 @@
                 id="rename-input"
                 v-model="renameCanvasName"
                 type="text"
+                maxlength="50"
                 @keyup.enter="handleRename"
+                @blur="renameCanvasName = renameCanvasName.trim()"
               />
             </div>
 
@@ -187,7 +191,7 @@
               </button>
               <button
                 @click="handleRename"
-                :disabled="!renameCanvasName"
+                :disabled="!isRenameNameValid"
               >
                 Rename
               </button>
@@ -314,9 +318,21 @@ const showCreateModal = ref(false)
 const newCanvasName = ref('')
 const isCreating = ref(false)
 
+// Computed property to check if create name is valid
+const isCreateNameValid = computed(() => {
+  const trimmed = newCanvasName.value?.trim()
+  return trimmed && trimmed.length > 0 && trimmed.length <= 50
+})
+
 // Rename modal
 const renameCanvas = ref(null)
 const renameCanvasName = ref('')
+
+// Computed property to check if rename name is valid
+const isRenameNameValid = computed(() => {
+  const trimmed = renameCanvasName.value?.trim()
+  return trimmed && trimmed.length > 0 && trimmed.length <= 50
+})
 
 // Delete modal
 const deleteCanvas = ref(null)
@@ -360,12 +376,31 @@ const openCanvas = (canvasId) => {
 
 // Create canvas
 const handleCreateCanvas = async () => {
-  if (!newCanvasName.value || isCreating.value) return
+  if (isCreating.value) return
+  
+  // Validate canvas name - trim whitespace and check if empty
+  const trimmedName = newCanvasName.value?.trim()
+  if (!trimmedName) {
+    alert('Room name cannot be empty. Please enter a valid name.')
+    return
+  }
+  
+  // Check for minimum length
+  if (trimmedName.length < 1) {
+    alert('Room name is too short. Please enter at least 1 character.')
+    return
+  }
+  
+  // Check for maximum length
+  if (trimmedName.length > 50) {
+    alert('Room name is too long. Please use 50 characters or less.')
+    return
+  }
 
   try {
     isCreating.value = true
     const canvas = await createCanvas(user.value.uid, user.value.displayName || user.value.email, {
-      name: newCanvasName.value
+      name: trimmedName
     })
 
     // Reset form
@@ -389,10 +424,29 @@ const startRename = (canvas) => {
 }
 
 const handleRename = async () => {
-  if (!renameCanvasName.value || !renameCanvas.value) return
+  if (!renameCanvas.value) return
+  
+  // Validate canvas name - trim whitespace and check if empty
+  const trimmedName = renameCanvasName.value?.trim()
+  if (!trimmedName) {
+    alert('Room name cannot be empty. Please enter a valid name.')
+    return
+  }
+  
+  // Check for minimum length
+  if (trimmedName.length < 1) {
+    alert('Room name is too short. Please enter at least 1 character.')
+    return
+  }
+  
+  // Check for maximum length
+  if (trimmedName.length > 50) {
+    alert('Room name is too long. Please use 50 characters or less.')
+    return
+  }
 
   try {
-    await updateCanvas(renameCanvas.value.id, { name: renameCanvasName.value })
+    await updateCanvas(renameCanvas.value.id, { name: trimmedName })
     renameCanvas.value = null
     renameCanvasName.value = ''
   } catch (error) {

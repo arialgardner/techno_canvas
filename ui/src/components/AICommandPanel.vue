@@ -123,7 +123,14 @@ const props = defineProps({
     type: Object,
     required: true,
   },
+  canvasId: {
+    type: String,
+    required: true,
+  },
 })
+
+// Use canvas-specific storage keys
+const STORAGE_KEY_POSITION = computed(() => `ai-panel-position-${props.canvasId}`)
 
 const emit = defineEmits(['command-executed', 'utility-action', 'close'])
 
@@ -133,7 +140,8 @@ const isFocused = ref(false)
 const commandInput = ref(null)
 
 // Draggable state
-const position = ref({ x: 20, y: 160 }) // Default position (top left)
+// Position will be calculated in onMounted to place it on the right side
+const position = ref({ x: 20, y: 160 })
 const isDragging = ref(false)
 const dragOffset = ref({ x: 0, y: 0 })
 
@@ -374,9 +382,55 @@ const handleKeyDown = (e) => {
 }
 
 onMounted(() => {
+  // Load saved position from localStorage, or calculate initial position
+  const savedPosition = localStorage.getItem(STORAGE_KEY_POSITION.value)
+  
+  if (savedPosition) {
+    position.value = JSON.parse(savedPosition)
+  } else {
+    // Calculate initial position towards the right side of the screen
+    // Place it 20px from the right edge, accounting for the 500px panel width and 300px properties panel
+    const viewportWidth = window.innerWidth
+    const panelWidth = 500
+    const propertiesPanelWidth = 300
+    const rightMargin = 20
+    
+    // Position it to the right, but left of the properties panel
+    const rightSideX = viewportWidth - panelWidth - propertiesPanelWidth - rightMargin
+    
+    // Use the calculated position if it's reasonable, otherwise fallback to a safe value
+    const initialX = rightSideX > 0 ? rightSideX : Math.max(viewportWidth - panelWidth - 20, 20)
+    
+    position.value = { x: initialX, y: 160 }
+  }
+  
   window.addEventListener('keydown', handleKeyDown)
   window.addEventListener('mousemove', onMouseMove)
   window.addEventListener('mouseup', onMouseUp)
+})
+
+// Watch for changes to position and save to localStorage (canvas-specific)
+watch(position, (newValue) => {
+  localStorage.setItem(STORAGE_KEY_POSITION.value, JSON.stringify(newValue))
+}, { deep: true })
+
+// Watch for canvas changes and reload position for the new canvas
+watch(() => props.canvasId, (newCanvasId) => {
+  const newPositionKey = `ai-panel-position-${newCanvasId}`
+  const savedPosition = localStorage.getItem(newPositionKey)
+  
+  if (savedPosition) {
+    position.value = JSON.parse(savedPosition)
+  } else {
+    // Calculate default position for new canvas
+    const viewportWidth = window.innerWidth
+    const panelWidth = 500
+    const propertiesPanelWidth = 300
+    const rightMargin = 20
+    const rightSideX = viewportWidth - panelWidth - propertiesPanelWidth - rightMargin
+    const initialX = rightSideX > 0 ? rightSideX : Math.max(viewportWidth - panelWidth - 20, 20)
+    position.value = { x: initialX, y: 160 }
+  }
 })
 
 onUnmounted(() => {

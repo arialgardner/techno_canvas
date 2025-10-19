@@ -4,33 +4,6 @@
     <div v-if="!hasSelection" class="panel-section">
       <h3 class="panel-title">Canvas</h3>
       <div class="property-group">
-        <label class="property-label">Size</label>
-        <div class="property-row">
-          <div class="property-input-group">
-            <label class="property-sublabel">Width</label>
-            <input
-              type="number"
-              :value="canvasWidth"
-              min="100"
-              max="10000"
-              readonly
-              class="property-input readonly-arrows"
-            />
-          </div>
-          <div class="property-input-group">
-            <label class="property-sublabel">Height</label>
-            <input
-              type="number"
-              :value="canvasHeight"
-              min="100"
-              max="10000"
-              readonly
-              class="property-input readonly-arrows"
-            />
-          </div>
-        </div>
-      </div>
-      <div class="property-group">
         <div class="info-row">
           <span class="info-label">Total Shapes</span>
           <span class="info-value">{{ totalShapes }}</span>

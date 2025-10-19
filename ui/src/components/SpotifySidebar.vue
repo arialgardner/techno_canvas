@@ -42,7 +42,8 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, inject } from 'vue'
+import { useRoute } from 'vue-router'
 import SpotifyEmbed from './SpotifyEmbed.vue'
 
 export default {
@@ -51,8 +52,22 @@ export default {
     SpotifyEmbed
   },
   setup() {
-    const isCollapsed = ref(false)
-    const position = ref({ x: 20, y: 160 }) // Default position (top left)
+    // Get canvasId from route to make storage per-canvas
+    const route = useRoute()
+    const canvasId = computed(() => route.params.canvasId || 'default')
+    
+    // Use canvas-specific storage keys
+    const STORAGE_KEY_COLLAPSED = computed(() => `spotify-panel-collapsed-${canvasId.value}`)
+    const STORAGE_KEY_POSITION = computed(() => `spotify-panel-position-${canvasId.value}`)
+    
+    // Load saved state from localStorage, default to false if not found
+    const savedCollapsed = localStorage.getItem(STORAGE_KEY_COLLAPSED.value)
+    const isCollapsed = ref(savedCollapsed !== null ? savedCollapsed === 'true' : false)
+    
+    // Load saved position from localStorage, default to top left if not found
+    const savedPosition = localStorage.getItem(STORAGE_KEY_POSITION.value)
+    const position = ref(savedPosition ? JSON.parse(savedPosition) : { x: 20, y: 160 })
+    
     const isDragging = ref(false)
     const dragOffset = ref({ x: 0, y: 0 })
     const hasMoved = ref(false)
@@ -136,6 +151,28 @@ export default {
     onUnmounted(() => {
       window.removeEventListener('mousemove', onMouseMove)
       window.removeEventListener('mouseup', onMouseUp)
+    })
+
+    // Watch for changes to collapsed state and save to localStorage (canvas-specific)
+    watch(isCollapsed, (newValue) => {
+      localStorage.setItem(STORAGE_KEY_COLLAPSED.value, String(newValue))
+    })
+
+    // Watch for changes to position and save to localStorage (canvas-specific)
+    watch(position, (newValue) => {
+      localStorage.setItem(STORAGE_KEY_POSITION.value, JSON.stringify(newValue))
+    }, { deep: true })
+    
+    // Watch for canvas changes and reload settings for the new canvas
+    watch(canvasId, (newCanvasId) => {
+      const newCollapsedKey = `spotify-panel-collapsed-${newCanvasId}`
+      const newPositionKey = `spotify-panel-position-${newCanvasId}`
+      
+      const savedCollapsed = localStorage.getItem(newCollapsedKey)
+      isCollapsed.value = savedCollapsed !== null ? savedCollapsed === 'true' : false
+      
+      const savedPosition = localStorage.getItem(newPositionKey)
+      position.value = savedPosition ? JSON.parse(savedPosition) : { x: 20, y: 160 }
     })
 
     return {

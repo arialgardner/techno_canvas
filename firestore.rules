@@ -62,6 +62,24 @@ service cloud.firestore {
         allow delete: if request.auth != null && 
                         get(/databases/$(database)/documents/canvases/$(canvasId)).data.owner == request.auth.uid;
       }
+      
+      // Chat messages (room-specific chat)
+      match /chat/{messageId} {
+        // Allow read if user has canvas access
+        allow read: if hasCanvasAccess(canvasId);
+        // Allow create if user has canvas access and is creating their own message
+        allow create: if hasCanvasAccess(canvasId) &&
+                        request.auth != null && 
+                        request.resource.data.userId == request.auth.uid &&
+                        request.resource.data.message is string &&
+                        request.resource.data.message.size() > 0 &&
+                        request.resource.data.message.size() <= 280 &&
+                        request.resource.data.userName is string &&
+                        request.resource.data.keys().hasAll(['message', 'userId', 'userName', 'createdAt', 'timestamp']) &&
+                        request.resource.data.createdAt == request.time;
+        // No updates or deletes allowed - chat messages are permanent
+        allow update, delete: if false;
+      }
     }
     
     // User documents
