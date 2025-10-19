@@ -1,10 +1,28 @@
 <template>
-  <div class="ai-command-panel" :class="{ 'is-focused': isFocused }" data-testid="ai-panel">
-    <!-- Beta badge -->
-    <div class="beta-badge">
-      <span class="beta-text">AI Assistant</span>
-      <span class="beta-label">BETA</span>
-    </div>
+  <div 
+    v-if="visible"
+    class="ai-panel-overlay" 
+    :style="overlayStyle"
+  >
+    <div class="ai-command-panel" :class="{ 'is-focused': isFocused }" data-testid="ai-panel">
+      <!-- Title Bar (Draggable) -->
+      <div 
+        class="title-bar"
+        @mousedown="startDrag"
+      >
+        <div class="beta-badge">
+          <span class="beta-text">AI Assistant</span>
+          <span class="beta-label">BETA</span>
+        </div>
+        <button 
+          class="minimize-button" 
+          @click="handleMinimize"
+          @mousedown.stop
+          title="Minimize"
+        >
+          _
+        </button>
+      </div>
     
     <!-- Keyboard shortcuts info -->
     <div class="shortcuts-info">
@@ -87,27 +105,43 @@
         </div>
       </div>
     </transition>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch, defineProps, defineEmits } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, defineProps, defineEmits } from 'vue'
 import { useAICommands } from '../composables/useAICommands'
 import { useCommandExecutor } from '../composables/useCommandExecutor'
 
 const props = defineProps({
+  visible: {
+    type: Boolean,
+    default: false
+  },
   context: {
     type: Object,
     required: true,
   },
 })
 
-const emit = defineEmits(['command-executed', 'utility-action'])
+const emit = defineEmits(['command-executed', 'utility-action', 'close'])
 
 // Component state
 const userInput = ref('')
 const isFocused = ref(false)
 const commandInput = ref(null)
+
+// Draggable state
+const position = ref({ x: 20, y: 160 }) // Default position (top left)
+const isDragging = ref(false)
+const dragOffset = ref({ x: 0, y: 0 })
+
+// Computed style for positioning
+const overlayStyle = computed(() => ({
+  left: `${position.value.x}px`,
+  top: `${position.value.y}px`,
+}))
 const currentMessage = ref(null) // { type: 'success' | 'error', text: '...' }
 const historyIndex = ref(-1)
 
@@ -132,6 +166,17 @@ const { executeCommand: executeCanvasCommand } = useCommandExecutor()
 watch(aiError, (newError) => {
   if (newError) {
     showMessage('error', newError, 5000)
+  }
+})
+
+// Reset state when modal is opened
+watch(() => props.visible, (newVisible) => {
+  if (newVisible) {
+    // Clear input and messages
+    userInput.value = ''
+    currentMessage.value = null
+    isFocused.value = false
+    historyIndex.value = -1
   }
 })
 
@@ -261,80 +306,151 @@ const formatTime = (timestamp) => {
 }
 
 /**
+ * Start dragging
+ */
+const startDrag = (event) => {
+  isDragging.value = true
+  
+  // Calculate offset from mouse to element top-left
+  const rect = event.currentTarget.closest('.ai-command-panel').getBoundingClientRect()
+  dragOffset.value = {
+    x: event.clientX - rect.left,
+    y: event.clientY - rect.top,
+  }
+
+  // Prevent text selection while dragging
+  event.preventDefault()
+}
+
+/**
+ * Handle mouse move for dragging
+ */
+const onMouseMove = (event) => {
+  if (!isDragging.value) return
+
+  // Calculate new position
+  let newX = event.clientX - dragOffset.value.x
+  let newY = event.clientY - dragOffset.value.y
+
+  // Get viewport dimensions
+  const viewportWidth = window.innerWidth
+  const viewportHeight = window.innerHeight
+
+  // Panel dimensions
+  const panelWidth = 500
+  const minVisibleHeight = 40 // Keep at least title bar visible
+
+  // Constrain to viewport bounds (allow dragging anywhere but keep title bar visible)
+  newX = Math.max(-panelWidth + 100, Math.min(newX, viewportWidth - 100)) // Keep 100px visible horizontally
+  newY = Math.max(70, Math.min(newY, viewportHeight - minVisibleHeight)) // Min 70px for navbar, keep title bar visible
+
+  position.value = { x: newX, y: newY }
+}
+
+/**
+ * Stop dragging
+ */
+const onMouseUp = () => {
+  isDragging.value = false
+}
+
+/**
+ * Handle minimize button click
+ */
+const handleMinimize = () => {
+  emit('close')
+}
+
+/**
  * Handle keyboard shortcut (Cmd/Ctrl+J)
  */
 const handleKeyDown = (e) => {
   if ((e.metaKey || e.ctrlKey) && e.key === 'j') {
     e.preventDefault()
-    commandInput.value?.focus()
+    if (props.visible) {
+      commandInput.value?.focus()
+    }
   }
 }
 
 onMounted(() => {
   window.addEventListener('keydown', handleKeyDown)
+  window.addEventListener('mousemove', onMouseMove)
+  window.addEventListener('mouseup', onMouseUp)
 })
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeyDown)
+  window.removeEventListener('mousemove', onMouseMove)
+  window.removeEventListener('mouseup', onMouseUp)
 })
 </script>
 
 <style scoped>
-.ai-command-panel {
+.ai-panel-overlay {
   position: fixed;
-  bottom: 20px;
-  right: 320px; /* Above properties panel */
-  width: 400px;
+  /* Position controlled by inline style (draggable) */
+  z-index: 101; /* Above canvas, same level as zoom controls */
+  user-select: none; /* Prevent text selection while dragging */
+}
+
+.ai-command-panel {
+  width: 500px;
+  max-height: 600px;
+  overflow-y: auto;
   background-color: #c0c0c0;
-  padding: 4px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  z-index: 100;
-  transition: none;
-  border: 2px solid #000;
-  box-shadow: inset -1px -1px 0 0 #808080, inset 1px 1px 0 0 #ffffff;
+  border: 2px solid #ffffff;
+  border-right-color: #808080;
+  border-bottom-color: #808080;
+  box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.4);
 }
 
-/* Responsive positioning - stay on right side */
-@media (max-width: 1200px) {
-  .ai-command-panel {
-    right: 270px; /* Adjust for narrower properties panel */
-    width: 350px;
-  }
+
+.title-bar {
+  background: linear-gradient(90deg, #000080, #1084d0);
+  color: #ffffff;
+  padding: 4px 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: move; /* Draggable */
+  user-select: none; /* Prevent text selection */
 }
 
-@media (max-width: 768px) {
-  .ai-command-panel {
-    right: 1rem; /* Properties panel hidden, move to right edge */
-    width: 280px;
-    padding: 4px;
-    bottom: 1rem;
-  }
+.minimize-button {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  background: #c0c0c0;
+  border: 2px solid #ffffff;
+  border-right-color: #808080;
+  border-bottom-color: #808080;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #000;
 }
 
-@media (max-width: 480px) {
-  .ai-command-panel {
-    right: 0.75rem;
-    left: 0.75rem; /* Full width on very small screens */
-    width: auto;
-    bottom: 0.75rem;
-    padding: 4px;
-  }
+.minimize-button:hover {
+  background: #dfdfdf;
 }
 
-.ai-command-panel.is-focused {
-  border-color: #000;
+.minimize-button:active {
+  border: 2px solid #808080;
+  border-right-color: #ffffff;
+  border-bottom-color: #ffffff;
 }
 
 .beta-badge {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 4px;
-  padding: 4px 6px;
-  border-bottom: 1px solid #808080;
-  background: #000080;
 }
 
 .beta-text {
@@ -361,7 +477,7 @@ onUnmounted(() => {
   padding: 4px 6px;
   background: #fff;
   border: 1px solid #808080;
-  margin-bottom: 4px;
+  margin: 4px 8px 4px 8px;
   
   strong {
     font-weight: bold;
@@ -371,6 +487,7 @@ onUnmounted(() => {
 .input-area {
   display: flex;
   gap: 4px;
+  padding: 0 8px;
 }
 
 .command-input {
@@ -482,6 +599,7 @@ onUnmounted(() => {
 
 .feedback-message {
   padding: 4px 6px;
+  margin: 4px 8px;
   font-size: 11px;
   display: flex;
   align-items: center;
@@ -512,7 +630,7 @@ onUnmounted(() => {
 .suggested-commands {
   border-top: 1px solid #808080;
   padding-top: 6px;
-  margin-top: 4px;
+  margin: 4px 8px 8px 8px;
 }
 
 .suggestions-header {
@@ -576,7 +694,7 @@ onUnmounted(() => {
 .command-history {
   border-top: 1px solid #808080;
   padding-top: 6px;
-  margin-top: 4px;
+  margin: 4px 8px 8px 8px;
 }
 
 .history-header {

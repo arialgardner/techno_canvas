@@ -97,37 +97,12 @@ export function useCommandExecutor() {
   }
 
   /**
-   * Calculate random position within viewport bounds
+   * Calculate position for new shapes (center of viewport)
    */
   const getViewportPosition = (viewportCenter, viewportBounds, shapeSize = { width: 100, height: 100 }) => {
-    // If no viewport bounds provided, use center
-    if (!viewportBounds) {
-      console.log('⚠️ No viewport bounds, using center')
-      return { x: viewportCenter.x, y: viewportCenter.y }
-    }
-
-    console.log('🎯 Calculating position within bounds:', { viewportBounds, shapeSize })
-
-    // Add padding to keep shapes fully visible (20px margin in canvas coordinates)
-    const padding = 20
-    const minX = viewportBounds.left + padding + (shapeSize.width / 2)
-    const maxX = viewportBounds.right - padding - (shapeSize.width / 2)
-    const minY = viewportBounds.top + padding + (shapeSize.height / 2)
-    const maxY = viewportBounds.bottom - padding - (shapeSize.height / 2)
-
-    // If shape is too large for viewport, center it
-    if (minX >= maxX || minY >= maxY) {
-      console.log('⚠️ Shape too large for viewport, centering')
-      return { x: viewportCenter.x, y: viewportCenter.y }
-    }
-
-    // Generate random position within bounds
-    const x = minX + Math.random() * (maxX - minX)
-    const y = minY + Math.random() * (maxY - minY)
-
-    const result = { x: Math.round(x), y: Math.round(y) }
-    console.log('✅ Position calculated:', result)
-    return result
+    // Always create shapes at the center of the viewport
+    console.log('🎯 Creating shape at viewport center:', viewportCenter)
+    return { x: Math.round(viewportCenter.x), y: Math.round(viewportCenter.y) }
   }
 
   /**

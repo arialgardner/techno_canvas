@@ -7,7 +7,7 @@
     </div>
 
     <!-- Toolbar -->
-      <Toolbar @tool-selected="handleToolSelected" />
+    <Toolbar @tool-selected="handleToolSelected" @open-ai-modal="showAIModal = true" />
 
     <!-- Zoom Controls -->
     <ZoomControls 
@@ -207,9 +207,11 @@
     <!-- AI Command Panel (v6: AI-powered natural language commands) -->
     <AICommandPanel
       v-if="user"
+      :visible="showAIModal"
       :context="aiContext"
       @command-executed="handleAICommandExecuted"
       @utility-action="handleAIUtilityAction"
+      @close="showAIModal = false"
     />
 
     <!-- Spotify Sidebar (v7: Always-visible music player) -->
@@ -428,6 +430,7 @@ export default {
     const lastPointerPosition = reactive({ x: 0, y: 0 })
     const showVersionHistory = ref(false)
     const canRestoreVersions = computed(() => true) // owner-only checked via NavBar button visibility
+    const showAIModal = ref(false)
     
     // Viewer mode - computed based on canvas permissions
     const isViewerMode = computed(() => {
@@ -1552,6 +1555,7 @@ export default {
       zoomLevel,
       activeTool,
       shapesList,
+      showAIModal,
       visibleShapesList, // v5: Viewport-culled shapes for rendering
       remoteCursors,
       activeUserCount,

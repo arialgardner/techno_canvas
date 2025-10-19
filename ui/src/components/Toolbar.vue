@@ -21,7 +21,7 @@ import { ref } from 'vue'
 export default {
   name: 'Toolbar',
   props: {},
-  emits: ['tool-selected'],
+  emits: ['tool-selected', 'open-ai-modal'],
   setup(props, { emit }) {
     const activeTool = ref('select')
     
@@ -31,10 +31,18 @@ export default {
       { name: 'rectangle', label: 'Rectangle', icon: '▭' },
       { name: 'circle', label: 'Circle', icon: '○' },
       { name: 'line', label: 'Line', icon: '╱' },
-      { name: 'text', label: 'Text', icon: 'T' }
+      { name: 'text', label: 'Text', icon: 'T' },
+      { name: 'ai', label: 'AI Assistant', icon: '🤖' }
     ]
 
     const selectTool = (toolName) => {
+      // Handle AI tool specially - open modal
+      if (toolName === 'ai') {
+        emit('open-ai-modal')
+        return
+      }
+      
+      // Set other tools as active
       activeTool.value = toolName
       emit('tool-selected', toolName)
     }

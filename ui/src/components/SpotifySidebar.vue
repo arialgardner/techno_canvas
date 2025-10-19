@@ -7,7 +7,7 @@
     <!-- Collapsed State - Just Icon -->
     <button 
       v-if="isCollapsed" 
-      @click="isCollapsed = false" 
+      @click="handleExpandClick" 
       @mousedown="startDrag"
       class="expand-btn" 
       title="Open Music Player (drag to move)"
@@ -55,6 +55,8 @@ export default {
     const position = ref({ x: 20, y: 160 }) // Default position (top left)
     const isDragging = ref(false)
     const dragOffset = ref({ x: 0, y: 0 })
+    const hasMoved = ref(false)
+    const startPosition = ref({ x: 0, y: 0 })
 
     // Computed style for positioning
     const overlayStyle = computed(() => ({
@@ -65,6 +67,8 @@ export default {
     // Start dragging
     const startDrag = (event) => {
       isDragging.value = true
+      hasMoved.value = false
+      startPosition.value = { x: event.clientX, y: event.clientY }
       
       // Calculate offset from mouse to element top-left
       const rect = event.currentTarget.getBoundingClientRect()
@@ -80,6 +84,13 @@ export default {
     // Handle mouse move
     const onMouseMove = (event) => {
       if (!isDragging.value) return
+
+      // Check if mouse has moved more than a few pixels (drag threshold)
+      const deltaX = Math.abs(event.clientX - startPosition.value.x)
+      const deltaY = Math.abs(event.clientY - startPosition.value.y)
+      if (deltaX > 3 || deltaY > 3) {
+        hasMoved.value = true
+      }
 
       // Calculate new position
       let newX = event.clientX - dragOffset.value.x
@@ -105,6 +116,17 @@ export default {
       isDragging.value = false
     }
 
+    // Handle expand click (only if not dragged)
+    const handleExpandClick = (event) => {
+      if (hasMoved.value) {
+        // Was dragged, don't expand
+        event.preventDefault()
+        return
+      }
+      // Was clicked without dragging, expand
+      isCollapsed.value = false
+    }
+
     // Add/remove event listeners
     onMounted(() => {
       window.addEventListener('mousemove', onMouseMove)
@@ -120,6 +142,7 @@ export default {
       isCollapsed,
       overlayStyle,
       startDrag,
+      handleExpandClick,
     }
   }
 }

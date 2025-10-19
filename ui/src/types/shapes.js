@@ -34,22 +34,22 @@ export const DEFAULT_SHAPE_PROPERTIES = {
   rectangle: {
     width: 100,
     height: 100,
-    fill: '#000000' // Black
+    fill: '#ffffff' // White
   },
   circle: {
     radius: 50,
-    fill: '#000000' // Black
+    fill: '#ffffff' // White
     // stroke and strokeWidth are optional, omit from defaults
   },
   line: {
-    stroke: '#000000', // Black
+    stroke: '#ffffff', // White
     strokeWidth: 2
   },
   text: {
     text: 'Text',
     fontSize: 16,
     fontFamily: 'Arial',
-    fill: '#000000', // Black
+    fill: '#ffffff', // White
     fontStyle: 'normal',
     align: 'left'
     // width is optional, omit from defaults

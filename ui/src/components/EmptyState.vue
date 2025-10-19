@@ -111,15 +111,17 @@ const defaultMessage = computed(() => {
   margin: 0 0 8px 0;
   font-size: 16px;
   font-weight: bold;
-  color: #000;
+  color: #ffffff;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .empty-message {
   margin: 0 0 20px 0;
   font-size: 12px;
-  color: #000;
+  color: #ffffff;
   line-height: 1.4;
   max-width: 300px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .empty-action {
