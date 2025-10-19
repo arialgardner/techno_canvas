@@ -60,6 +60,27 @@
       </div>
     </div>
 
+    <!-- Loading Playback State -->
+    <div v-else-if="isLoadingPlayback" class="loading-playback">
+      <div class="loading-window">
+        <div class="loading-title-bar">
+          <span class="loading-title">♫ Loading...</span>
+        </div>
+        <div class="loading-content">
+          <div class="hourglass-container">
+            <div class="hourglass">⌛</div>
+          </div>
+          <p class="loading-text">{{ currentEmbedName }}</p>
+          <div class="progress-bar-container">
+            <div class="progress-bar-win95">
+              <div class="progress-bar-fill"></div>
+            </div>
+          </div>
+          <p class="loading-hint">Please wait...</p>
+        </div>
+      </div>
+    </div>
+
     <!-- Currently Playing Embed -->
     <div v-else-if="currentEmbed" class="embed-player">
       <div class="embed-header">
@@ -78,12 +99,27 @@
 
     <!-- Popular Playlists -->
     <div v-else class="playlists-section">
-      <h3>Playlists</h3>
+      <h3 v-if="!isLoadingPlaylists">Playlists</h3>
       
-      <!-- Loading State -->
-      <div v-if="isLoadingPlaylists" class="loading-state">
-        <div class="spinner"></div>
-        <p>Loading playlists...</p>
+      <!-- Loading State - Windows 95 Style -->
+      <div v-if="isLoadingPlaylists" class="playlists-loading">
+        <div class="loading-window-playlists">
+          <div class="loading-title-bar">
+            <span class="loading-title">♫ Loading Playlists...</span>
+          </div>
+          <div class="loading-content-playlists">
+            <div class="hourglass-container">
+              <div class="hourglass">⌛</div>
+            </div>
+            <p class="loading-text">Searching for music...</p>
+            <div class="progress-bar-container">
+              <div class="progress-bar-win95">
+                <div class="progress-bar-fill"></div>
+              </div>
+            </div>
+            <p class="loading-hint">Please wait...</p>
+          </div>
+        </div>
       </div>
 
       <!-- Error State -->
@@ -95,7 +131,7 @@
       <!-- Empty State -->
       <div v-else-if="popularPlaylists.length === 0" class="empty-state">
         <div class="empty-icon">♫</div>
-        <p>Click a genre button above to discover playlists</p>
+        <p class="empty-message">Click a genre button above to discover playlists</p>
       </div>
 
       <!-- Playlists Grid -->
@@ -177,6 +213,9 @@ export default {
     const showLoginPrompt = ref(false)
     const selectedPlaylist = ref(null)
     const isConnecting = ref(false)
+    
+    // Loading state for playlist/track
+    const isLoadingPlayback = ref(false)
 
     // Restore playlists from localStorage for this canvas
     const popularPlaylists = ref(
@@ -362,6 +401,73 @@ Return ONLY the JSON array, no other text.`
       localStorage.setItem(STORAGE_KEY_QUICK_PICKS.value, JSON.stringify(newValue))
     }, { deep: true })
 
+    // Helper function to check and play pending playlist
+    const checkAndPlayPendingPlaylist = () => {
+      console.log('[SpotifyEmbed] Checking for pending playlist, isConnected:', isConnected.value)
+      
+      if (!isConnected.value) {
+        console.log('[SpotifyEmbed] Not connected, skipping pending playlist check')
+        return
+      }
+      
+      // Check if there's a pending playlist from pre-auth
+      const pendingPlaylistStr = sessionStorage.getItem('spotify_pending_playlist')
+      console.log('[SpotifyEmbed] Pending playlist data:', pendingPlaylistStr)
+      
+      if (pendingPlaylistStr) {
+        try {
+          const pendingPlaylist = JSON.parse(pendingPlaylistStr)
+          console.log('[SpotifyEmbed] Parsed pending playlist:', pendingPlaylist)
+          
+          // Only play if it's for this canvas
+          if (pendingPlaylist.canvasId === canvasId.value) {
+            console.log('[SpotifyEmbed] Canvas IDs match, auto-playing playlist')
+            
+            // Clear the pending playlist
+            sessionStorage.removeItem('spotify_pending_playlist')
+            
+            // Auto-play the playlist
+            playEmbed(pendingPlaylist.uri, pendingPlaylist.name)
+            
+            // Close login prompt if still open
+            showLoginPrompt.value = false
+            selectedPlaylist.value = null
+            
+            // Expand the player if it was minimized
+            if (expandSpotifyPlayer) {
+              console.log('[SpotifyEmbed] Expanding Spotify player')
+              expandSpotifyPlayer()
+            }
+          } else {
+            console.log('[SpotifyEmbed] Canvas ID mismatch, not playing. Expected:', canvasId.value, 'Got:', pendingPlaylist.canvasId)
+          }
+        } catch (error) {
+          console.error('[SpotifyEmbed] Error parsing pending playlist:', error)
+          sessionStorage.removeItem('spotify_pending_playlist')
+        }
+      }
+    }
+
+    // Watch for Spotify connection status to auto-play pending playlist
+    watch(isConnected, (connected) => {
+      console.log('[SpotifyEmbed] Connection status changed:', connected)
+      if (connected) {
+        // Small delay to ensure everything is ready
+        setTimeout(() => {
+          checkAndPlayPendingPlaylist()
+        }, 500)
+      }
+    })
+
+    // Check for pending playlist on mount (in case already connected)
+    onMounted(() => {
+      console.log('[SpotifyEmbed] Component mounted, checking for pending playlist')
+      // Small delay to ensure Spotify listener is set up
+      setTimeout(() => {
+        checkAndPlayPendingPlaylist()
+      }, 1000)
+    })
+
     // Watch for canvas changes and reload state
     watch(() => route.params.canvasId, (newCanvasId) => {
       // Load state for new canvas
@@ -398,11 +504,23 @@ Return ONLY the JSON array, no other text.`
     const handleConnectSpotify = async () => {
       isConnecting.value = true
       try {
+        // Save the playlist user wants to play for after auth
+        if (selectedPlaylist.value) {
+          const pendingData = {
+            uri: selectedPlaylist.value.uri,
+            name: selectedPlaylist.value.name,
+            canvasId: canvasId.value
+          }
+          console.log('[SpotifyEmbed] Saving pending playlist before auth:', pendingData)
+          sessionStorage.setItem('spotify_pending_playlist', JSON.stringify(pendingData))
+        }
+        
+        console.log('[SpotifyEmbed] Initiating Spotify connection')
         await connectSpotify()
         // After successful connection, user will be redirected
         // They can resume listening when they return
       } catch (error) {
-        console.error('Failed to connect to Spotify:', error)
+        console.error('[SpotifyEmbed] Failed to connect to Spotify:', error)
         alert('Failed to connect to Spotify. Please try again.')
       } finally {
         isConnecting.value = false
@@ -449,17 +567,26 @@ Return ONLY the JSON array, no other text.`
         id = id.split('?')[0]
       }
       
+      // Show loading state
+      isLoadingPlayback.value = true
+      
       currentEmbed.value = `https://open.spotify.com/embed/${type}/${id}?utm_source=generator&theme=0`
       currentEmbedName.value = name
       
       // Save to localStorage for this canvas
       localStorage.setItem(STORAGE_KEY_CURRENT_EMBED.value, currentEmbed.value)
       localStorage.setItem(STORAGE_KEY_CURRENT_NAME.value, currentEmbedName.value)
+      
+      // Hide loading after a short delay (iframe load simulation)
+      setTimeout(() => {
+        isLoadingPlayback.value = false
+      }, 1500)
     }
 
     const closeEmbed = () => {
       currentEmbed.value = null
       currentEmbedName.value = ''
+      isLoadingPlayback.value = false
       
       // Clear from localStorage for this canvas
       localStorage.removeItem(STORAGE_KEY_CURRENT_EMBED.value)
@@ -570,6 +697,7 @@ Return ONLY the JSON array, no other text.`
       selectedPlaylist,
       isConnecting,
       isConnected,
+      isLoadingPlayback,
       handlePlaylistClick,
       handleConnectSpotify,
       playEmbedPreview,
@@ -759,7 +887,6 @@ Return ONLY the JSON array, no other text.`
   letter-spacing: 0.5px;
 }
 
-.loading-state,
 .error-state,
 .empty-state {
   display: flex;
@@ -769,6 +896,10 @@ Return ONLY the JSON array, no other text.`
   padding: 40px;
   gap: 12px;
   color: #ffffff;
+}
+
+.empty-message {
+  text-align: center;
 }
 
 .empty-icon {
@@ -787,6 +918,152 @@ Return ONLY the JSON array, no other text.`
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* Loading Playback State - Windows 95 Style */
+.loading-playback {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000000;
+  padding: 40px;
+}
+
+.loading-window {
+  background: #c0c0c0;
+  border: 2px solid #ffffff;
+  border-right-color: #808080;
+  border-bottom-color: #808080;
+  box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.4);
+  min-width: 320px;
+  max-width: 400px;
+}
+
+.loading-title-bar {
+  background: linear-gradient(90deg, #000080, #1084d0);
+  color: #ffffff;
+  padding: 4px 8px;
+  font-weight: bold;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  user-select: none;
+}
+
+.loading-title {
+  flex: 1;
+}
+
+.loading-content {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+}
+
+.hourglass-container {
+  width: 64px;
+  height: 64px;
+  background: #ffffff;
+  border: 2px solid #808080;
+  border-right-color: #ffffff;
+  border-bottom-color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 1px 1px 0px 0px rgba(0,0,0,0.1);
+}
+
+.hourglass {
+  font-size: 32px;
+  animation: rotate-hourglass 2s ease-in-out infinite;
+}
+
+@keyframes rotate-hourglass {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(180deg); }
+}
+
+.loading-text {
+  color: #000000;
+  font-size: 12px;
+  font-weight: bold;
+  margin: 0;
+  font-family: 'Tahoma', 'MS Sans Serif', sans-serif;
+  word-break: break-word;
+  max-width: 100%;
+}
+
+.progress-bar-container {
+  width: 100%;
+  padding: 0 8px;
+}
+
+.progress-bar-win95 {
+  height: 20px;
+  background: #ffffff;
+  border: 2px solid #808080;
+  border-right-color: #ffffff;
+  border-bottom-color: #ffffff;
+  box-shadow: inset 1px 1px 0px 0px rgba(0,0,0,0.2);
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: repeating-linear-gradient(
+    45deg,
+    #000080,
+    #000080 10px,
+    #0000a0 10px,
+    #0000a0 20px
+  );
+  animation: progress-slide 1s linear infinite;
+  width: 100%;
+}
+
+@keyframes progress-slide {
+  0% { transform: translateX(-20px); }
+  100% { transform: translateX(0); }
+}
+
+.loading-hint {
+  color: #000000;
+  font-size: 11px;
+  margin: 0;
+  font-family: 'Tahoma', 'MS Sans Serif', sans-serif;
+}
+
+/* Loading Playlists State - Windows 95 Style */
+.playlists-loading {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.loading-window-playlists {
+  background: #c0c0c0;
+  border: 2px solid #ffffff;
+  border-right-color: #808080;
+  border-bottom-color: #808080;
+  box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.4);
+  min-width: 280px;
+  max-width: 350px;
+  width: 100%;
+}
+
+.loading-content-playlists {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
 }
 
 .retry-btn {

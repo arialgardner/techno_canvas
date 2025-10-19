@@ -6,7 +6,7 @@
         <button class="back-button" @click="handleBackToDashboard" title="Back to Dashboard">
           ← Back
         </button>
-        <h1>{{ canvasName }}</h1>
+        <h1>{{ canvasName }} room</h1>
       </div>
 
       <!-- User Info & Controls -->
@@ -124,7 +124,7 @@ export default {
     },
     canvasName: {
       type: String,
-      default: 'Untitled Room'
+      default: 'Untitled'
     },
     canUserEdit: {
       type: Boolean,

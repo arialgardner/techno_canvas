@@ -146,7 +146,7 @@ export default {
       if (!props.textShape) return {}
       
       const x = props.textShape.x * props.stageScale + props.stagePosition.x
-      const y = (props.textShape.y + 40) * props.stageScale + props.stagePosition.y
+      const y = (props.textShape.y + 100) * props.stageScale + props.stagePosition.y
       
       return {
         left: `${x}px`,

@@ -135,14 +135,9 @@ export function useCanvasSelection(stage, transformer, shapes) {
         transformerNode.boundBoxFunc(null)
         break
       case 'text':
-        transformerNode.enabledAnchors(['middle-left', 'middle-right'])
-        transformerNode.rotateEnabled(true)
-        transformerNode.boundBoxFunc((oldBox, newBox) => {
-          if (Math.abs(newBox.width) < 20) {
-            return oldBox
-          }
-          return newBox
-        })
+        transformerNode.enabledAnchors([])
+        transformerNode.rotateEnabled(false)
+        transformerNode.boundBoxFunc(null)
         break
       default:
         transformerNode.enabledAnchors(['top-left', 'top-center', 'top-right', 

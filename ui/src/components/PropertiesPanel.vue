@@ -459,32 +459,6 @@
         </div>
 
         <div class="property-group">
-          <label class="property-label">Rotation</label>
-          <input
-            type="number"
-            :value="Math.round(selectedShapes[0].rotation || 0)"
-            @input="handlePropertyChange('rotation', parseFloat($event.target.value) % 360)"
-            min="0"
-            max="360"
-            class="property-input"
-          />
-          <span class="property-unit">degrees</span>
-        </div>
-
-        <div class="property-group" v-if="selectedShapes[0].width">
-          <label class="property-label">Width (Optional)</label>
-          <input
-            type="number"
-            :value="Math.round(selectedShapes[0].width)"
-            @input="handlePropertyChange('width', parseFloat($event.target.value) || null)"
-            min="20"
-            readonly
-            class="property-input readonly-arrows"
-          />
-          <span class="property-unit">px</span>
-        </div>
-
-        <div class="property-group">
           <label class="property-label">Z-Index</label>
           <input
             type="number"

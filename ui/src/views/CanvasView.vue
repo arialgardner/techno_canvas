@@ -38,7 +38,7 @@
       <EmptyState 
         v-if="!isLoading && shapesList.length === 0"
         type="canvas"
-        :title="`Welcome to ${currentCanvas?.name || 'Untitled Room'}!`"
+        :title="`Welcome to ${currentCanvas?.name || 'Untitled'} room!`"
         message="Enjoy your time"
         style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10; pointer-events: none;"
       />

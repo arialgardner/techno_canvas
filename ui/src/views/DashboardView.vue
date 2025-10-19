@@ -5,7 +5,7 @@
       <div class="window">
         <div class="inner">
           <div class="header">
-            <span class="title">Canvas Rooms</span>
+            <span class="title">CANVAS ROOMS</span>
           </div>
           <div class="content header-content">
             <div class="header-actions">
@@ -139,12 +139,14 @@
               <label for="canvas-name">Room Name:</label>
               <input
                 id="canvas-name"
+                ref="createNameInput"
                 v-model="newCanvasName"
                 type="text"
                 placeholder="Enter room name"
                 maxlength="50"
                 @keyup.enter="handleCreateCanvas"
                 @blur="newCanvasName = newCanvasName.trim()"
+                autofocus
               />
             </div>
 
@@ -282,7 +284,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCanvases } from '../composables/useCanvases'
 import { useAuth } from '../composables/useAuth'
@@ -317,6 +319,7 @@ const canvasesList = computed(() => {
 const showCreateModal = ref(false)
 const newCanvasName = ref('')
 const isCreating = ref(false)
+const createNameInput = ref(null)
 
 // Computed property to check if create name is valid
 const isCreateNameValid = computed(() => {
@@ -345,6 +348,14 @@ const shareLinkInput = ref(null)
 
 // Guest log modal
 const showGuestLog = ref(false)
+
+// Watch for create modal opening to focus input
+watch(showCreateModal, async (newValue) => {
+  if (newValue) {
+    await nextTick()
+    createNameInput.value?.focus()
+  }
+})
 
 // Load canvases on mount
 onMounted(async () => {

@@ -24,11 +24,6 @@
         </button>
       </div>
     
-    <!-- Keyboard shortcuts info -->
-    <div class="shortcuts-info">
-      <strong>Shortcuts:</strong> Cmd/Ctrl+J to focus • Enter to send
-    </div>
-    
     <!-- Main input area -->
     <div class="input-area">
       <input
@@ -155,7 +150,7 @@ const historyIndex = ref(-1)
 
 // Suggested commands for users to learn the format
 const suggestedCommands = [
-  { icon: '▪', text: "add a text layer that says 'collab canvas'" },
+  { icon: '▪', text: "add a text layer that says 'welcome to the room'" },
   { icon: '▬', text: 'make a 200x300 rectangle' },
   { icon: '✕', text: 'delete all selected shapes' },
   { icon: '○', text: 'make the selected shape white' },
@@ -369,18 +364,6 @@ const handleMinimize = () => {
   emit('close')
 }
 
-/**
- * Handle keyboard shortcut (Cmd/Ctrl+J)
- */
-const handleKeyDown = (e) => {
-  if ((e.metaKey || e.ctrlKey) && e.key === 'j') {
-    e.preventDefault()
-    if (props.visible) {
-      commandInput.value?.focus()
-    }
-  }
-}
-
 onMounted(() => {
   // Load saved position from localStorage, or calculate initial position
   const savedPosition = localStorage.getItem(STORAGE_KEY_POSITION.value)
@@ -404,7 +387,6 @@ onMounted(() => {
     position.value = { x: initialX, y: 160 }
   }
   
-  window.addEventListener('keydown', handleKeyDown)
   window.addEventListener('mousemove', onMouseMove)
   window.addEventListener('mouseup', onMouseUp)
 })
@@ -434,7 +416,6 @@ watch(() => props.canvasId, (newCanvasId) => {
 })
 
 onUnmounted(() => {
-  window.removeEventListener('keydown', handleKeyDown)
   window.removeEventListener('mousemove', onMouseMove)
   window.removeEventListener('mouseup', onMouseUp)
 })
@@ -525,23 +506,10 @@ onUnmounted(() => {
   border: 1px solid #000;
 }
 
-.shortcuts-info {
-  font-size: 10px;
-  color: #000;
-  padding: 4px 6px;
-  background: #fff;
-  border: 1px solid #808080;
-  margin: 4px 8px 4px 8px;
-  
-  strong {
-    font-weight: bold;
-  }
-}
-
 .input-area {
   display: flex;
   gap: 4px;
-  padding: 0 8px;
+  padding: 8px;
 }
 
 .command-input {

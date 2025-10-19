@@ -72,7 +72,7 @@ export default {
     
     // Get canvas name with fallback
     const canvasName = computed(() => {
-      return currentCanvas.value?.name || 'Untitled Room'
+      return currentCanvas.value?.name || 'Untitled'
     })
     
     // Set up global error handling

@@ -114,9 +114,9 @@ export default {
     const isOpen = ref(false)
     const isMinimized = ref(false)
     
-    // Calculate initial position (bottom-right corner)
-    const initialX = window.innerWidth - 420 // 400px width + 20px margin
-    const initialY = window.innerHeight - 520 // 500px height + 20px margin
+    // Calculate initial position (right side of canvas, overlaying canvas not sidebar)
+    const initialX = window.innerWidth - 720 // Position more to the left to overlay canvas
+    const initialY = 160 // Position below navbar and toolbar
     
     const modalStyle = ref({
       left: `${Math.max(20, initialX)}px`,

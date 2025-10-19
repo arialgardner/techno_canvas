@@ -11,6 +11,7 @@
       :style="textStyle"
       :maxlength="maxLength"
       @keydown.esc="handleCancel"
+      @keydown.enter="handleEnter"
       @blur="handleBlur"
       @input="handleInput"
     />
@@ -54,12 +55,12 @@ export default {
     const isInitializing = ref(false)
 
     // Calculate editor position based on shape position and stage transform
-    // Position 20px below the text's y position
+    // Position 60px below the text's y position
     const editorStyle = computed(() => {
       if (!props.textShape) return {}
       
       const x = props.textShape.x * props.stageScale + props.stagePosition.x
-      const y = props.textShape.y * props.stageScale + props.stagePosition.y + 20
+      const y = props.textShape.y * props.stageScale + props.stagePosition.y + 60
       
       return {
         left: `${x}px`,
@@ -68,14 +69,14 @@ export default {
       }
     })
 
-    // Match text style to shape (but use black text for readability)
+    // Match text style to shape
     const textStyle = computed(() => {
       if (!props.textShape) return {}
       
       return {
         fontSize: `${props.textShape.fontSize}px`,
         fontFamily: props.textShape.fontFamily,
-        color: '#000000', // Always black for readability against white background
+        color: props.textShape.fill || '#000000',
         fontWeight: props.textShape.fontStyle.includes('bold') ? 'bold' : 'normal',
         fontStyle: props.textShape.fontStyle.includes('italic') ? 'italic' : 'normal',
         textAlign: props.textShape.align,
@@ -133,6 +134,18 @@ export default {
       emit('cancel')
     }
 
+    const handleEnter = (e) => {
+      // Allow Shift+Enter to add line breaks, but Enter alone closes the editor
+      if (!e.shiftKey) {
+        e.preventDefault()
+        if (localText.value.trim()) {
+          emit('save', localText.value)
+        } else {
+          emit('cancel')
+        }
+      }
+    }
+
     // Global click handler to close editor when clicking outside
     const handleGlobalClick = (e) => {
       if (!props.isVisible || isInitializing.value) return
@@ -167,7 +180,8 @@ export default {
       textStyle,
       handleInput,
       handleBlur,
-      handleCancel
+      handleCancel,
+      handleEnter
     }
   }
 }
