@@ -5,12 +5,15 @@
       <div class="window">
         <div class="inner">
           <div class="header">
-            <span class="title">Techno Canvas - Genres</span>
+            <span class="title">Canvas Rooms</span>
           </div>
           <div class="content header-content">
             <div class="header-actions">
               <button @click="showCreateModal = true">
-                Create New Canvas
+                Create New Room
+              </button>
+              <button @click="showGuestLog = true">
+                📖 Guest Log
               </button>
               <div class="user-menu">
                 <div class="user-info">
@@ -29,7 +32,7 @@
     <!-- Loading State -->
     <LoadingSpinner
       v-if="isLoading && canvasesList.length === 0"
-      title="Loading Canvases..."
+      title="Loading Rooms..."
       message="Fetching your collaborative workspaces"
     />
 
@@ -37,12 +40,12 @@
     <EmptyState
       v-else-if="!isLoading && canvasesList.length === 0"
       type="dashboard"
-      title="No Canvases Yet"
-      message="Create your first canvas to start collaborating"
+      title="No Rooms Yet"
+      message="Create your first room to start collaborating"
       class="dashboard-empty-state"
     >
       <button @click="showCreateModal = true" class="empty-state-button">
-        Create Canvas
+        Create Room
       </button>
     </EmptyState>
 
@@ -92,7 +95,7 @@
             <div class="canvas-actions" @click.stop>
               <button
                 @click="openCanvas(canvas.id)"
-                title="Open canvas"
+                title="Open room"
                 class="primary-button"
               >
                 Open
@@ -100,20 +103,20 @@
               <button
                 v-if="canvas.owner === user.uid"
                 @click="startRename(canvas)"
-                title="Rename canvas"
+                title="Rename room"
               >
                 Rename
               </button>
               <button
                 v-if="canvas.owner === user.uid"
                 @click="confirmDelete(canvas)"
-                title="Delete canvas"
+                title="Delete room"
               >
                 Delete
               </button>
               <button
                 @click="shareCanvas(canvas)"
-                title="Share canvas"
+                title="Share room"
               >
                 Share
               </button>
@@ -124,21 +127,21 @@
     </div>
 
     <!-- Create Canvas Modal -->
-    <div v-if="showCreateModal" class="modal-overlay" @click="showCreateModal = false">
-      <div class="window modal-window" @click.stop>
+    <div v-if="showCreateModal" class="modal-overlay">
+      <div class="window modal-window">
         <div class="inner">
           <div class="header">
-            <span class="title">Create New Canvas</span>
+            <span class="title">Create New Room</span>
           </div>
 
           <div class="content">
             <div class="form-group">
-              <label for="canvas-name">Canvas Name:</label>
+              <label for="canvas-name">Room Name:</label>
               <input
                 id="canvas-name"
                 v-model="newCanvasName"
                 type="text"
-                placeholder="Enter canvas name"
+                placeholder="Enter room name"
                 @keyup.enter="handleCreateCanvas"
               />
             </div>
@@ -151,7 +154,7 @@
                 @click="handleCreateCanvas"
                 :disabled="!newCanvasName || isCreating"
               >
-                {{ isCreating ? 'Creating...' : 'Create Canvas' }}
+                {{ isCreating ? 'Creating...' : 'Create Room' }}
               </button>
             </div>
           </div>
@@ -160,16 +163,16 @@
     </div>
 
     <!-- Rename Canvas Modal -->
-    <div v-if="renameCanvas" class="modal-overlay" @click="renameCanvas = null">
-      <div class="window modal-window" @click.stop>
+    <div v-if="renameCanvas" class="modal-overlay">
+      <div class="window modal-window">
         <div class="inner">
           <div class="header">
-            <span class="title">Rename Canvas</span>
+            <span class="title">Rename Room</span>
           </div>
 
           <div class="content">
             <div class="form-group">
-              <label for="rename-input">Canvas Name:</label>
+              <label for="rename-input">Room Name:</label>
               <input
                 id="rename-input"
                 v-model="renameCanvasName"
@@ -195,11 +198,11 @@
     </div>
 
     <!-- Delete Confirmation Modal -->
-    <div v-if="deleteCanvas" class="modal-overlay" @click="deleteCanvas = null">
-      <div class="window modal-window" @click.stop>
+    <div v-if="deleteCanvas" class="modal-overlay">
+      <div class="window modal-window">
         <div class="inner">
           <div class="header">
-            <span class="title">Delete Canvas</span>
+            <span class="title">Delete Room</span>
           </div>
 
           <div class="content">
@@ -219,7 +222,7 @@
                 :disabled="isDeleting"
                 class="danger-button"
               >
-                {{ isDeleting ? 'Deleting...' : 'Delete Canvas' }}
+                {{ isDeleting ? 'Deleting...' : 'Delete Room' }}
               </button>
             </div>
           </div>
@@ -228,11 +231,11 @@
     </div>
 
     <!-- Share Canvas Modal -->
-    <div v-if="shareCanvasData" class="modal-overlay" @click="shareCanvasData = null">
-      <div class="window modal-window" @click.stop>
+    <div v-if="shareCanvasData" class="modal-overlay">
+      <div class="window modal-window">
         <div class="inner">
           <div class="header">
-            <span class="title">Share Canvas</span>
+            <span class="title">Share Room</span>
           </div>
 
           <div class="content">
@@ -252,7 +255,7 @@
             </div>
 
             <div class="share-info">
-              Anyone with this link and an account can access this canvas with Editor permissions by default.
+              Anyone with this link and an account can access this room with Editor permissions by default.
             </div>
 
             <div class="modal-actions">
@@ -264,6 +267,13 @@
         </div>
       </div>
     </div>
+
+    <!-- Guest Log Modal -->
+    <GuestLog 
+      v-if="showGuestLog"
+      :isVisible="showGuestLog"
+      @close="showGuestLog = false"
+    />
   </div>
 </template>
 
@@ -275,6 +285,7 @@ import { useAuth } from '../composables/useAuth'
 import { useInactivityLogout } from '../composables/useInactivityLogout'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 import EmptyState from '../components/EmptyState.vue'
+import GuestLog from '../components/GuestLog.vue'
 
 const router = useRouter()
 const { user, signOut } = useAuth()
@@ -316,6 +327,9 @@ const shareCanvasData = ref(null)
 const linkCopied = ref(false)
 const shareLinkInput = ref(null)
 
+// Guest log modal
+const showGuestLog = ref(false)
+
 // Load canvases on mount
 onMounted(async () => {
   // Wait for auth to be ready
@@ -340,7 +354,7 @@ const openCanvas = (canvasId) => {
     router.push({ name: 'Canvas', params: { canvasId } })
   } catch (error) {
     console.error('[Dashboard] Error navigating to canvas:', error)
-    alert('Failed to open canvas. Please try again.')
+    alert('Failed to open room. Please try again.')
   }
 }
 
@@ -362,7 +376,7 @@ const handleCreateCanvas = async () => {
     openCanvas(canvas.id)
   } catch (error) {
     console.error('Error creating canvas:', error)
-    alert('Failed to create canvas. Please try again.')
+    alert('Failed to create room. Please try again.')
   } finally {
     isCreating.value = false
   }
@@ -383,7 +397,7 @@ const handleRename = async () => {
     renameCanvasName.value = ''
   } catch (error) {
     console.error('Error renaming canvas:', error)
-    alert('Failed to rename canvas. Please try again.')
+    alert('Failed to rename room. Please try again.')
   }
 }
 
@@ -401,7 +415,7 @@ const handleDelete = async () => {
     deleteCanvas.value = null
   } catch (error) {
     console.error('Error deleting canvas:', error)
-    alert('Failed to delete canvas. Please try again.')
+    alert('Failed to delete room. Please try again.')
   } finally {
     isDeleting.value = false
   }

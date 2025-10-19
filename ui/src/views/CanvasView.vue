@@ -1,12 +1,5 @@
 <template>
   <div class="canvas-container">
-    <!-- Loading indicator -->
-    <LoadingSpinner 
-      v-if="isLoading" 
-      title="Loading Canvas..." 
-      message="Setting up your collaborative workspace"
-    />
-
     <!-- Error message -->
     <div v-if="error && !isLoading" class="error-message">
       <p>{{ error }}</p>
@@ -42,7 +35,7 @@
       <EmptyState 
         v-if="!isLoading && shapesList.length === 0"
         type="canvas"
-        title="Welcome to Techno Canvas!"
+        :title="`Welcome to ${currentCanvas?.name || 'Untitled Room'}!`"
         message="Select a tool from the toolbar above and click on the canvas to create shapes"
         style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10; pointer-events: none;"
       />
@@ -218,6 +211,9 @@
       @command-executed="handleAICommandExecuted"
       @utility-action="handleAIUtilityAction"
     />
+
+    <!-- Spotify Sidebar (v7: Always-visible music player) -->
+    <SpotifySidebar />
   </div>
 </template>
 
@@ -237,13 +233,13 @@ import ConfirmModal from '../components/ConfirmModal.vue'
 import UserCursor from '../components/UserCursor.vue'
 import PerformanceMonitor from '../components/PerformanceMonitor.vue'
 import Notifications from '../components/Notifications.vue'
-import LoadingSpinner from '../components/LoadingSpinner.vue'
 import EmptyState from '../components/EmptyState.vue'
 import TestingDashboard from '../components/TestingDashboard.vue'
 import PropertiesPanel from '../components/PropertiesPanel.vue'
 import RecoveryModal from '../components/RecoveryModal.vue'
 import VersionHistory from '../components/VersionHistory.vue'
 import AICommandPanel from '../components/AICommandPanel.vue'
+import SpotifySidebar from '../components/SpotifySidebar.vue'
 import { useShapes } from '../composables/useShapes'
 import { useFirestore } from '../composables/useFirestore' // v5: Batch operations
 import { getMaxZIndex, DEFAULT_SHAPE_PROPERTIES } from '../types/shapes'
@@ -296,10 +292,10 @@ export default {
     UserCursor,
     PerformanceMonitor,
     Notifications,
-    LoadingSpinner,
     EmptyState,
     TestingDashboard,
-    AICommandPanel
+    AICommandPanel,
+    SpotifySidebar
   },
   setup() {
     // Router
@@ -821,6 +817,7 @@ export default {
     } = useCanvasMouseEvents({
       stage,
       stageConfig,
+      stagePosition,
       canvasWrapper,
       activeTool,
       isViewerMode,
@@ -841,6 +838,7 @@ export default {
       showTextEditor,
       isPanning,
       isDragging,
+      isDraggingGroup,
       lastPointerPosition,
       isSpacebarPressed,
       startMarqueeSelection,
@@ -1637,7 +1635,9 @@ export default {
       aiContext,
       handleAICommandExecuted,
       handleAIUtilityAction,
-      user
+      user,
+      // Canvas metadata
+      currentCanvas
     }
   }
 }
@@ -1698,10 +1698,10 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #ffffff;
+  background-color: #000000;
   background-image: 
-    repeating-linear-gradient(0deg, transparent, transparent 19px, #c0c0c0 19px, #c0c0c0 20px),
-    repeating-linear-gradient(90deg, transparent, transparent 19px, #c0c0c0 19px, #c0c0c0 20px);
+    repeating-linear-gradient(0deg, transparent, transparent 19px, #404040 19px, #404040 20px),
+    repeating-linear-gradient(90deg, transparent, transparent 19px, #404040 19px, #404040 20px);
   background-size: 20px 20px;
   pointer-events: none;
   z-index: -1;

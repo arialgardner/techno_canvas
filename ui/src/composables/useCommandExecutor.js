@@ -7,6 +7,7 @@
 
 import { useShapes } from './useShapes'
 import { useNotifications } from './useNotifications'
+import { validateGrayscaleColor, isGrayscaleColor } from '../utils/colorValidation'
 
 export function useCommandExecutor() {
   const {
@@ -166,8 +167,11 @@ export function useCommandExecutor() {
       y: finalPosition.y,
     }
 
-    // Add color if specified
+    // Add color if specified (validate grayscale only)
     if (color) {
+      if (!isGrayscaleColor(color)) {
+        throw new Error(`Color must be grayscale (black, white, or shades of gray). "${color}" is not allowed.`)
+      }
       properties.fill = color
     }
 
@@ -596,6 +600,11 @@ export function useCommandExecutor() {
       arrangement = 'horizontal',
       color,
       size,
+      text,
+      texts,
+      fontSize,
+      fontFamily,
+      fontStyle,
     } = params
 
     // Validate that lines are not supported
@@ -603,11 +612,20 @@ export function useCommandExecutor() {
       throw new Error('Lines are not supported. Only rectangles, circles, and text can be created.')
     }
 
+    // Validate color is grayscale only
+    if (color && !isGrayscaleColor(color)) {
+      throw new Error(`Color must be grayscale (black, white, or shades of gray). "${color}" is not allowed.`)
+    }
+
+    console.log('🔍 executeCreateMultiple params:', { shapeType, count, size, color, text })
+
     const createdShapes = []
     
     // Determine default shape size
     const shapeWidth = size?.width || (size?.radius ? size.radius * 2 : 100)
     const shapeHeight = size?.height || (size?.radius ? size.radius * 2 : 100)
+    
+    console.log('🔍 Calculated shape dimensions:', { shapeWidth, shapeHeight, radius: size?.radius })
 
     // Calculate starting position within viewport (we'll build a grid around this)
     const shapeSize = { width: shapeWidth, height: shapeHeight }
@@ -645,7 +663,10 @@ export function useCommandExecutor() {
         spacing
       })
       
-      // Create shapes row by row
+      // Create shapes row by row (collect all shape creation promises)
+      const shapePromises = []
+      let shapeIndex = 0
+      
       for (let row = 0; row < gridRows; row++) {
         for (let col = 0; col < gridCols; col++) {
           const properties = {}
@@ -668,10 +689,34 @@ export function useCommandExecutor() {
           if (size?.height) properties.height = size.height
           if (size?.radius) properties.radius = size.radius
           
-          const shape = await createShape(shapeType, properties, userId, canvasId, userName)
-          createdShapes.push(shape)
+          // Add text properties for text shapes
+          if (shapeType === 'text') {
+            // If texts array provided, use individual text for each shape
+            if (texts && Array.isArray(texts) && texts[shapeIndex]) {
+              properties.text = texts[shapeIndex]
+            } else if (text) {
+              // Otherwise use the single text value
+              properties.text = text
+            }
+            if (fontSize) properties.fontSize = fontSize
+            if (fontFamily) properties.fontFamily = fontFamily
+            if (fontStyle) properties.fontStyle = fontStyle
+          }
+          
+          if (shapeIndex === 0) {
+            console.log('🔍 Creating first shape with properties:', properties)
+          }
+          
+          // Add promise to array instead of awaiting
+          shapePromises.push(createShape(shapeType, properties, userId, canvasId, userName))
+          shapeIndex++
         }
       }
+      
+      // Create all shapes in parallel
+      console.log(`⚡ Creating ${shapePromises.length} shapes in parallel...`)
+      const shapes = await Promise.all(shapePromises)
+      createdShapes.push(...shapes)
       
       return { createdShapes }
     }
@@ -688,6 +733,9 @@ export function useCommandExecutor() {
         center: viewportCenter
       })
       
+      const shapePromises = []
+      let shapeIndex = 0
+      
       for (const pos of positions) {
         const properties = {
           x: Math.round(pos.x),
@@ -699,9 +747,29 @@ export function useCommandExecutor() {
         if (size?.height) properties.height = size.height
         if (size?.radius) properties.radius = size.radius
         
-        const shape = await createShape(shapeType, properties, userId, canvasId, userName)
-        createdShapes.push(shape)
+        // Add text properties for text shapes
+        if (shapeType === 'text') {
+          // If texts array provided, use individual text for each shape
+          if (texts && Array.isArray(texts) && texts[shapeIndex]) {
+            properties.text = texts[shapeIndex]
+          } else if (text) {
+            // Otherwise use the single text value
+            properties.text = text
+          }
+          if (fontSize) properties.fontSize = fontSize
+          if (fontFamily) properties.fontFamily = fontFamily
+          if (fontStyle) properties.fontStyle = fontStyle
+        }
+        
+        // Add promise to array instead of awaiting
+        shapePromises.push(createShape(shapeType, properties, userId, canvasId, userName))
+        shapeIndex++
       }
+      
+      // Create all shapes in parallel
+      console.log(`⚡ Creating ${shapePromises.length} pattern shapes in parallel...`)
+      const shapes = await Promise.all(shapePromises)
+      createdShapes.push(...shapes)
       
       return { createdShapes }
     }
@@ -724,7 +792,9 @@ export function useCommandExecutor() {
       cellSize: shapeSize
     })
 
-    // Create shapes in rows of 15
+    // Create shapes in rows of 15 (collect all promises)
+    const shapePromises = []
+    
     for (let i = 0; i < count; i++) {
       const col = i % colsPerRow
       const row = Math.floor(i / colsPerRow)
@@ -748,9 +818,32 @@ export function useCommandExecutor() {
         if (size.radius !== undefined) properties.radius = size.radius
       }
       
-      const shape = await createShape(shapeType, properties, userId, canvasId, userName)
-      createdShapes.push(shape)
+      // Add text properties for text shapes
+      if (shapeType === 'text') {
+        // If texts array provided, use individual text for each shape
+        if (texts && Array.isArray(texts) && texts[i]) {
+          properties.text = texts[i]
+        } else if (text) {
+          // Otherwise use the single text value (or number them if multiple)
+          properties.text = count > 1 ? `${text} ${i + 1}` : text
+        }
+        if (fontSize) properties.fontSize = fontSize
+        if (fontFamily) properties.fontFamily = fontFamily
+        if (fontStyle) properties.fontStyle = fontStyle
+      }
+      
+      if (i === 0) {
+        console.log('🔍 Creating first shape (default grid) with properties:', properties)
+      }
+      
+      // Add promise to array instead of awaiting
+      shapePromises.push(createShape(shapeType, properties, userId, canvasId, userName))
     }
+
+    // Create all shapes in parallel
+    console.log(`⚡ Creating ${shapePromises.length} shapes in parallel...`)
+    const shapes = await Promise.all(shapePromises)
+    createdShapes.push(...shapes)
 
     return { createdShapes }
   }
@@ -984,6 +1077,14 @@ export function useCommandExecutor() {
       throw new Error('No shapes selected for styling')
     }
 
+    // Validate colors are grayscale only
+    if (params.fill && !isGrayscaleColor(params.fill)) {
+      throw new Error(`Fill color must be grayscale (black, white, or shades of gray). "${params.fill}" is not allowed.`)
+    }
+    if (params.stroke && !isGrayscaleColor(params.stroke)) {
+      throw new Error(`Stroke color must be grayscale (black, white, or shades of gray). "${params.stroke}" is not allowed.`)
+    }
+
     const updates = {}
 
     if (params.fill) updates.fill = params.fill
@@ -1006,6 +1107,11 @@ export function useCommandExecutor() {
    * Execute utility command
    */
   const executeUtility = async (action, params) => {
+    // Handle error messages from AI (e.g., color restriction violations)
+    if (action === 'error') {
+      throw new Error(params.message || 'Unable to fulfill this request.')
+    }
+    
     // Utility actions are handled by CanvasView directly via events
     // This function just returns the action to be emitted
     return {

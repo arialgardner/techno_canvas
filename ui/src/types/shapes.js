@@ -1,72 +1,14 @@
-// Base shape interface with common properties
-export interface BaseShape {
-  id: string
-  type: 'rectangle' | 'circle' | 'line' | 'text'
-  zIndex: number
-  rotation: number
-  createdBy: string
-  createdAt: number
-  lastModified: number
-  lastModifiedBy: string
-  lastModifiedByName?: string
-}
-
-// Rectangle shape
-export interface Rectangle extends BaseShape {
-  type: 'rectangle'
-  x: number // top-left corner
-  y: number
-  width: number
-  height: number
-  fill: string
-}
-
-// Circle shape
-export interface Circle extends BaseShape {
-  type: 'circle'
-  x: number // center point
-  y: number
-  radius: number
-  fill: string
-  stroke?: string
-  strokeWidth?: number
-}
-
-// Line shape
-export interface Line extends BaseShape {
-  type: 'line'
-  points: number[] // [x1, y1, x2, y2]
-  stroke: string
-  strokeWidth: number
-}
-
-// Text shape
-export interface Text extends BaseShape {
-  type: 'text'
-  x: number // top-left corner
-  y: number
-  text: string
-  fontSize: number
-  fontFamily: string
-  fill: string
-  fontStyle: 'normal' | 'bold' | 'italic' | 'bold italic'
-  align: 'left' | 'center' | 'right'
-  width?: number
-  lockedBy?: string
-  lockedAt?: number
-}
-
-// Union type for all shapes
-export type Shape = Rectangle | Circle | Line | Text
+// Shape type definitions and utilities
+// Types: 'rectangle' | 'circle' | 'line' | 'text'
 
 // Generate a unique ID for shapes
-export const generateId = (type: 'rectangle' | 'circle' | 'line' | 'text' = 'rectangle'): string => {
+export const generateId = (type = 'rectangle') => {
   const prefix = type.substring(0, 4) // rect, circ, line, text
   return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
 }
 
 // Generate random color from predefined palette
-export const generateRandomColor = (): string => {
+export const generateRandomColor = () => {
   const colors = [
     '#FF6B6B', // Red
     '#4ECDC4', // Teal
@@ -84,7 +26,7 @@ export const generateRandomColor = (): string => {
     '#AED6F1', // Sky Blue
     '#D2B4DE'  // Lavender
   ]
-  return colors[Math.floor(Math.random() * colors.length)]!
+  return colors[Math.floor(Math.random() * colors.length)]
 }
 
 // Default shape properties
@@ -108,8 +50,8 @@ export const DEFAULT_SHAPE_PROPERTIES = {
     fontSize: 16,
     fontFamily: 'Arial',
     fill: '#000000', // Black
-    fontStyle: 'normal' as const,
-    align: 'left' as const
+    fontStyle: 'normal',
+    align: 'left'
     // width is optional, omit from defaults
   }
 }
@@ -125,10 +67,10 @@ export const CANVAS_BOUNDS = {
 
 // Constrain position within canvas bounds
 export const constrainToBounds = (
-  x: number, 
-  y: number, 
-  width: number = DEFAULT_RECT_SIZE.width, 
-  height: number = DEFAULT_RECT_SIZE.height
+  x, 
+  y, 
+  width = DEFAULT_RECT_SIZE.width, 
+  height = DEFAULT_RECT_SIZE.height
 ) => {
   return {
     x: Math.max(0, Math.min(x, CANVAS_BOUNDS.width - width)),
@@ -137,20 +79,21 @@ export const constrainToBounds = (
 }
 
 // Z-index utility functions
-export const getMaxZIndex = (shapes: Map<string, Shape>): number => {
+export const getMaxZIndex = (shapes) => {
   if (shapes.size === 0) return 0
   return Math.max(...Array.from(shapes.values()).map(shape => shape.zIndex))
 }
 
-export const getMinZIndex = (shapes: Map<string, Shape>): number => {
+export const getMinZIndex = (shapes) => {
   if (shapes.size === 0) return 0
   return Math.min(...Array.from(shapes.values()).map(shape => shape.zIndex))
 }
 
 // Check if z-index normalization is needed (gap > 1000)
-export const needsZIndexNormalization = (shapes: Map<string, Shape>): boolean => {
+export const needsZIndexNormalization = (shapes) => {
   if (shapes.size === 0) return false
   const max = getMaxZIndex(shapes)
   const min = getMinZIndex(shapes)
   return (max - min) > 1000
 }
+

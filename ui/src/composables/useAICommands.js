@@ -272,10 +272,16 @@ export function useAICommands() {
             count: p.count,
             arrangement: p.arrangement,
             color: p.fill || p.color,
+            size: toSize(), // Add size parameter for width/height/radius
             gridRows: p.gridRows,
             gridCols: p.gridCols,
             spacing: p.spacing,
             pattern: p.pattern, // Pattern type: circle, square, star, triangle, etc.
+            text: p.text, // Single text value to use for all shapes
+            texts: p.texts, // Array of text values for individual shapes
+            fontSize: p.fontSize,
+            fontFamily: p.fontFamily,
+            fontStyle: p.fontStyle,
           }
         }
         break

@@ -147,7 +147,7 @@ export default {
 .cursor-icon {
   width: 20px;
   height: 20px;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+  filter: drop-shadow(1px 1px 0 #000);
 }
 
 .cursor-label {
@@ -155,40 +155,52 @@ export default {
   top: 22px;
   left: 8px;
   color: white;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 500;
+  padding: 2px 4px;
+  border-radius: 0;
+  font-size: 11px;
+  font-weight: bold;
   white-space: nowrap;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  border: 1px solid #000;
+  box-shadow: 1px 1px 0 0 rgba(0, 0, 0, 0.5);
   min-width: 0;
 }
 
-/* Ensure cursor is visible on all backgrounds */
+/* Retro pointer tail */
 .cursor-label::before {
   content: '';
   position: absolute;
   top: -4px;
-  left: 8px;
+  left: 6px;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-bottom: 4px solid #000;
+}
+
+.cursor-label::after {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: 6px;
+  width: 0;
+  height: 0;
   border-left: 4px solid transparent;
   border-right: 4px solid transparent;
   border-bottom: 4px solid currentColor;
-  opacity: 0.8;
 }
 
-/* Animation for cursor appearance */
+/* Instant appearance (no smooth animation) */
 .user-cursor {
-  animation: cursorAppear 0.2s ease-out;
+  animation: cursorAppear 0.05s steps(1);
 }
 
 @keyframes cursorAppear {
   from {
     opacity: 0;
-    transform: translate(-2px, -2px) scale(0.8);
   }
   to {
     opacity: 1;
-    transform: translate(-2px, -2px) scale(1);
   }
 }
 

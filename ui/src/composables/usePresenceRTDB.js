@@ -257,8 +257,20 @@ export const usePresenceRTDB = () => {
           // Don't include current user in active users list
           if (userId === currentUserId) continue
           
+          // Debug: Log presence data for investigation
+          console.log(`🔍 Presence data for user ${userId}:`, {
+            canvasId: presence.canvasId,
+            expectedCanvasId: canvasId,
+            matches: presence.canvasId === canvasId,
+            userName: presence.userName,
+            online: presence.online
+          })
+          
           // Only process users for this specific canvas
-          if (presence.canvasId !== canvasId) continue
+          if (presence.canvasId !== canvasId) {
+            console.log(`⚠️ Skipping user ${userId} - canvasId mismatch: ${presence.canvasId} !== ${canvasId}`)
+            continue
+          }
           
           // Convert timestamp if needed
           const presenceObj = {

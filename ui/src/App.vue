@@ -7,6 +7,7 @@
     <NavBar 
       v-if="showNavBar" 
       :canvasId="currentCanvasId"
+      :canvasName="canvasName"
       :canUserEdit="canUserEdit"
       :isOwner="isCanvasOwner"
       @toggle-versions="handleToggleVersions" 
@@ -69,6 +70,11 @@ export default {
       return role === 'owner'
     })
     
+    // Get canvas name with fallback
+    const canvasName = computed(() => {
+      return currentCanvas.value?.name || 'Untitled Room'
+    })
+    
     // Set up global error handling
     onMounted(() => {
       setupNetworkMonitoring()
@@ -87,6 +93,7 @@ export default {
     return {
       showNavBar,
       currentCanvasId,
+      canvasName,
       canUserEdit,
       isCanvasOwner,
       handleToggleVersions,

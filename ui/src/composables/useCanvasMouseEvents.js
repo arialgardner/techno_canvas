@@ -4,6 +4,7 @@ import { DEFAULT_SHAPE_PROPERTIES } from '../types/shapes'
 export function useCanvasMouseEvents({
   stage,
   stageConfig,
+  stagePosition,
   canvasWrapper,
   activeTool,
   isViewerMode,
@@ -24,6 +25,7 @@ export function useCanvasMouseEvents({
   showTextEditor,
   isPanning,
   isDragging,
+  isDraggingGroup,
   lastPointerPosition,
   isSpacebarPressed,
   startMarqueeSelection,
@@ -123,7 +125,7 @@ export function useCanvasMouseEvents({
     const canvasY = (pointer.y - stageAttrs.y) / stageAttrs.scaleY
     
     // Handle group dragging
-    if (isDragging.groupDrag?.value) {
+    if (isDraggingGroup.value) {
       const userId = user.value?.uid || 'anonymous'
       updateGroupDrag(canvasX, canvasY, selectedShapeIds.value, shapes, updateShape, userId, canvasId.value, userName.value)
       return
@@ -148,8 +150,8 @@ export function useCanvasMouseEvents({
     const deltaX = pointer.x - lastPointerPosition.x
     const deltaY = pointer.y - lastPointerPosition.y
 
-    stageConfig.value.x += deltaX
-    stageConfig.value.y += deltaY
+    stagePosition.x += deltaX
+    stagePosition.y += deltaY
 
     lastPointerPosition.x = pointer.x
     lastPointerPosition.y = pointer.y
@@ -162,7 +164,7 @@ export function useCanvasMouseEvents({
 
   const handleMouseUp = async (e) => {
     // Handle group drag completion
-    if (isDragging.groupDrag?.value) {
+    if (isDraggingGroup.value) {
       const pointer = stage.value.getNode().getPointerPosition()
       const stageAttrs = stage.value.getNode().attrs
       const canvasX = (pointer.x - stageAttrs.x) / stageAttrs.scaleX
@@ -264,10 +266,15 @@ export function useCanvasMouseEvents({
     }
   }
 
+  const handleMouseLeave = () => {
+    // Just a placeholder - isMouseOverCanvas is handled separately in CanvasView
+  }
+
   return {
     handleMouseDown,
     handleMouseMove,
     handleMouseUp,
+    handleMouseLeave,
     handleWindowMouseUp,
     handleDoubleClick
   }

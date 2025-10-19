@@ -17,6 +17,7 @@ import { getFeatureFlag } from '../utils/featureFlags'
 import { transform, applyTransformedOperation } from '../utils/operationalTransform'
 import { useConflictDetection } from './useConflictDetection'
 import { usePrediction } from './usePrediction'
+import { validateGrayscaleColor } from '../utils/colorValidation'
 
 // Shared state (singleton) - defined outside composable function
 // Store shapes in a reactive Map for O(1) lookups
@@ -68,6 +69,14 @@ export const useShapes = () => {
       
       const shapeId = generateId(type)
       const currentMaxZ = getMaxZIndex(shapes)
+      
+      // Validate and sanitize colors to grayscale only
+      if (properties.fill) {
+        properties.fill = validateGrayscaleColor(properties.fill)
+      }
+      if (properties.stroke) {
+        properties.stroke = validateGrayscaleColor(properties.stroke)
+      }
       
       // Base shape properties
       const baseShape = {
@@ -175,6 +184,14 @@ export const useShapes = () => {
     if (!shape) {
       console.warn(`Shape with id ${id} not found`)
       return null
+    }
+
+    // Validate and sanitize colors to grayscale only
+    if (updates.fill) {
+      updates.fill = validateGrayscaleColor(updates.fill)
+    }
+    if (updates.stroke) {
+      updates.stroke = validateGrayscaleColor(updates.stroke)
     }
 
     // Allow shapes to be positioned anywhere on the full canvas

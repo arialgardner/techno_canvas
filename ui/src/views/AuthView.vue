@@ -259,7 +259,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #008080;
+  background: #000;
   padding: 20px;
   overflow: hidden;
 }
