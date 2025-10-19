@@ -65,11 +65,10 @@ service cloud.firestore {
       
       // Chat messages (room-specific chat)
       match /chat/{messageId} {
-        // Allow read if user has canvas access
-        allow read: if hasCanvasAccess(canvasId);
-        // Allow create if user has canvas access and is creating their own message
-        allow create: if hasCanvasAccess(canvasId) &&
-                        request.auth != null && 
+        // Allow read if authenticated (anyone with room link can read chat)
+        allow read: if request.auth != null;
+        // Allow create if authenticated and creating their own message (anyone with room link can chat)
+        allow create: if request.auth != null && 
                         request.resource.data.userId == request.auth.uid &&
                         request.resource.data.message is string &&
                         request.resource.data.message.size() > 0 &&

@@ -222,6 +222,9 @@
     <!-- Spotify Sidebar (v7: Always-visible music player) -->
     <SpotifySidebar />
 
+    <!-- Chat Log Widget (room-specific chat) -->
+    <ChatLog :canvasId="canvasId" />
+
   </div>
 </template>
 
@@ -248,6 +251,7 @@ import RecoveryModal from '../components/RecoveryModal.vue'
 import VersionHistory from '../components/VersionHistory.vue'
 import AICommandPanel from '../components/AICommandPanel.vue'
 import SpotifySidebar from '../components/SpotifySidebar.vue'
+import ChatLog from '../components/ChatLog.vue'
 import { useShapes } from '../composables/useShapes'
 import { useFirestore } from '../composables/useFirestore' // v5: Batch operations
 import { getMaxZIndex, DEFAULT_SHAPE_PROPERTIES } from '../types/shapes'
@@ -300,7 +304,8 @@ export default {
     EmptyState,
     TestingDashboard,
     AICommandPanel,
-    SpotifySidebar
+    SpotifySidebar,
+    ChatLog
   },
   setup() {
     // Router

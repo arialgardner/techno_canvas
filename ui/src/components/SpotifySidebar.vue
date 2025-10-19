@@ -35,14 +35,9 @@
 
       <!-- Player Content -->
       <div class="player-content">
-        <SpotifyEmbed />
+          <SpotifyEmbed />
+        </div>
       </div>
-
-      <!-- Resize Handles -->
-      <div class="resize-handle resize-right" @mousedown="startResize($event, 'right')"></div>
-      <div class="resize-handle resize-bottom" @mousedown="startResize($event, 'bottom')"></div>
-      <div class="resize-handle resize-corner" @mousedown="startResize($event, 'corner')"></div>
-    </div>
   </div>
 </template>
 
@@ -64,13 +59,10 @@ export default {
     // Use canvas-specific storage keys
     const STORAGE_KEY_COLLAPSED = computed(() => `spotify-panel-collapsed-${canvasId.value}`)
     const STORAGE_KEY_POSITION = computed(() => `spotify-panel-position-${canvasId.value}`)
-    const STORAGE_KEY_SIZE = computed(() => `spotify-panel-size-${canvasId.value}`)
     
-    // Min and max size constraints
-    const MIN_WIDTH = 280
-    const MIN_HEIGHT = 400
-    const MAX_WIDTH = 800
-    const MAX_HEIGHT = 900
+    // Fixed size for the player
+    const FIXED_WIDTH = 380
+    const FIXED_HEIGHT = 620
     
     // Load saved state from localStorage, default to false if not found
     const savedCollapsed = localStorage.getItem(STORAGE_KEY_COLLAPSED.value)
@@ -80,20 +72,13 @@ export default {
     const savedPosition = localStorage.getItem(STORAGE_KEY_POSITION.value)
     const position = ref(savedPosition ? JSON.parse(savedPosition) : { x: 20, y: 160 })
     
-    // Load saved size from localStorage, default to 380x600 if not found
-    const savedSize = localStorage.getItem(STORAGE_KEY_SIZE.value)
-    const size = ref(savedSize ? JSON.parse(savedSize) : { width: 380, height: 600 })
+    // Use fixed size (no longer resizable)
+    const size = ref({ width: FIXED_WIDTH, height: FIXED_HEIGHT })
     
     const isDragging = ref(false)
     const dragOffset = ref({ x: 0, y: 0 })
     const hasMoved = ref(false)
     const startPosition = ref({ x: 0, y: 0 })
-    
-    // Resize state
-    const isResizing = ref(false)
-    const resizeDirection = ref(null)
-    const resizeStartSize = ref({ width: 0, height: 0 })
-    const resizeStartMouse = ref({ x: 0, y: 0 })
 
     // Computed style for positioning
     const overlayStyle = computed(() => ({
@@ -127,15 +112,8 @@ export default {
       event.preventDefault()
     }
 
-    // Handle mouse move (for both dragging and resizing)
+    // Handle mouse move for dragging
     const onMouseMove = (event) => {
-      // Handle resizing
-      if (isResizing.value) {
-        onResizeMove(event)
-        return
-      }
-
-      // Handle dragging
       if (!isDragging.value) return
 
       // Check if mouse has moved more than a few pixels (drag threshold)
@@ -164,56 +142,9 @@ export default {
       position.value = { x: newX, y: newY }
     }
 
-    // Start resizing
-    const startResize = (event, direction) => {
-      event.stopPropagation() // Prevent drag from starting
-      event.preventDefault()
-      
-      isResizing.value = true
-      resizeDirection.value = direction
-      resizeStartSize.value = { ...size.value }
-      resizeStartMouse.value = { x: event.clientX, y: event.clientY }
-    }
-
-    // Handle resize mouse move
-    const onResizeMove = (event) => {
-      if (!isResizing.value) return
-
-      const deltaX = event.clientX - resizeStartMouse.value.x
-      const deltaY = event.clientY - resizeStartMouse.value.y
-
-      let newWidth = resizeStartSize.value.width
-      let newHeight = resizeStartSize.value.height
-
-      // Apply deltas based on resize direction
-      if (resizeDirection.value === 'right' || resizeDirection.value === 'corner') {
-        newWidth = resizeStartSize.value.width + deltaX
-      }
-      if (resizeDirection.value === 'bottom' || resizeDirection.value === 'corner') {
-        newHeight = resizeStartSize.value.height + deltaY
-      }
-
-      // Constrain to min/max sizes
-      newWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, newWidth))
-      newHeight = Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, newHeight))
-
-      // Also constrain to viewport
-      const viewportWidth = window.innerWidth
-      const viewportHeight = window.innerHeight
-      const maxWidth = viewportWidth - position.value.x - 20
-      const maxHeight = viewportHeight - position.value.y - 20
-      
-      newWidth = Math.min(newWidth, maxWidth)
-      newHeight = Math.min(newHeight, maxHeight)
-
-      size.value = { width: newWidth, height: newHeight }
-    }
-
-    // Stop dragging or resizing
+    // Stop dragging
     const onMouseUp = () => {
       isDragging.value = false
-      isResizing.value = false
-      resizeDirection.value = null
     }
 
     // Handle expand click (only if not dragged)
@@ -229,13 +160,14 @@ export default {
 
     // Add/remove event listeners
     onMounted(() => {
-      window.addEventListener('mousemove', onMouseMove)
-      window.addEventListener('mouseup', onMouseUp)
+      // Use capture phase to ensure events are caught even if something stops propagation
+      window.addEventListener('mousemove', onMouseMove, true)
+      window.addEventListener('mouseup', onMouseUp, true)
     })
 
     onUnmounted(() => {
-      window.removeEventListener('mousemove', onMouseMove)
-      window.removeEventListener('mouseup', onMouseUp)
+      window.removeEventListener('mousemove', onMouseMove, true)
+      window.removeEventListener('mouseup', onMouseUp, true)
     })
 
     // Watch for changes to collapsed state and save to localStorage (canvas-specific)
@@ -247,26 +179,17 @@ export default {
     watch(position, (newValue) => {
       localStorage.setItem(STORAGE_KEY_POSITION.value, JSON.stringify(newValue))
     }, { deep: true })
-
-    // Watch for changes to size and save to localStorage (canvas-specific)
-    watch(size, (newValue) => {
-      localStorage.setItem(STORAGE_KEY_SIZE.value, JSON.stringify(newValue))
-    }, { deep: true })
     
     // Watch for canvas changes and reload settings for the new canvas
     watch(canvasId, (newCanvasId) => {
       const newCollapsedKey = `spotify-panel-collapsed-${newCanvasId}`
       const newPositionKey = `spotify-panel-position-${newCanvasId}`
-      const newSizeKey = `spotify-panel-size-${newCanvasId}`
       
       const savedCollapsed = localStorage.getItem(newCollapsedKey)
       isCollapsed.value = savedCollapsed !== null ? savedCollapsed === 'true' : false
       
       const savedPosition = localStorage.getItem(newPositionKey)
       position.value = savedPosition ? JSON.parse(savedPosition) : { x: 20, y: 160 }
-      
-      const savedSize = localStorage.getItem(newSizeKey)
-      size.value = savedSize ? JSON.parse(savedSize) : { width: 380, height: 600 }
     })
 
     return {
@@ -275,7 +198,6 @@ export default {
       windowStyle,
       isCompactHeight,
       startDrag,
-      startResize,
       handleExpandClick,
     }
   }
@@ -380,60 +302,7 @@ export default {
   min-height: 0; /* Allow flex children to shrink */
 }
 
-/* Resize Handles */
-.resize-handle {
-  position: absolute;
-  z-index: 10;
-}
-
-.resize-right {
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 8px;
-  cursor: ew-resize;
-}
-
-.resize-bottom {
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 8px;
-  cursor: ns-resize;
-}
-
-.resize-corner {
-  right: 0;
-  bottom: 0;
-  width: 16px;
-  height: 16px;
-  cursor: nwse-resize;
-  background: linear-gradient(135deg, transparent 50%, #808080 50%);
-  border-left: 1px solid #ffffff;
-  border-top: 1px solid #ffffff;
-}
-
-.resize-corner::after {
-  content: '';
-  position: absolute;
-  right: 2px;
-  bottom: 2px;
-  width: 8px;
-  height: 8px;
-  background: linear-gradient(135deg, 
-    transparent 0%, transparent 25%,
-    #ffffff 25%, #ffffff 50%,
-    transparent 50%, transparent 75%,
-    #ffffff 75%, #ffffff 100%
-  );
-}
-
-/* Responsive - smaller on tablets */
-@media (max-width: 1024px) {
-  .player-window {
-    /* Size controlled by inline style */
-  }
-}
+/* Size is fixed and controlled by inline style */
 
 /* Responsive - hide on mobile */
 @media (max-width: 768px) {
