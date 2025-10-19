@@ -62,6 +62,7 @@
               v-if="shape.type === 'rectangle'"
               :rectangle="shape"
               :is-selected="selectedShapeIds.includes(shape.id)"
+              :active-tool="activeTool"
               :disable-drag="activeTool === 'pan' || (selectedShapeIds.length > 1 && selectedShapeIds.includes(shape.id))"
               @update="handleShapeUpdate"
               @select="handleShapeSelect"
@@ -72,6 +73,7 @@
               v-if="shape.type === 'circle'"
               :circle="shape"
               :is-selected="selectedShapeIds.includes(shape.id)"
+              :active-tool="activeTool"
               :disable-drag="activeTool === 'pan' || (selectedShapeIds.length > 1 && selectedShapeIds.includes(shape.id))"
               @update="handleShapeUpdate"
               @select="handleShapeSelect"
@@ -82,6 +84,7 @@
               v-if="shape.type === 'line'"
               :line="shape"
               :is-selected="selectedShapeIds.includes(shape.id)"
+              :active-tool="activeTool"
               :disable-drag="activeTool === 'pan' || (selectedShapeIds.length > 1 && selectedShapeIds.includes(shape.id))"
               @update="handleShapeUpdate"
               @select="handleShapeSelect"
@@ -92,6 +95,7 @@
               v-if="shape.type === 'text'"
               :text="shape"
               :is-selected="selectedShapeIds.includes(shape.id)"
+              :active-tool="activeTool"
               :disable-drag="activeTool === 'pan' || (selectedShapeIds.length > 1 && selectedShapeIds.includes(shape.id))"
               :editor-open="showTextEditor"
               @update="handleShapeUpdate"
@@ -225,7 +229,7 @@
 </template>
 
 <script>
-import { ref, reactive, onMounted, onUnmounted, onBeforeUnmount, computed, watch, inject, provide } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, onBeforeUnmount, computed, watch, inject, provide, nextTick } from 'vue'
 import VueKonva from 'vue-konva'
 import Toolbar from '../components/Toolbar.vue'
 import ZoomControls from '../components/ZoomControls.vue'
@@ -1014,11 +1018,13 @@ export default {
       }
       
       // Set up transformer event listeners
-      if (transformer.value) {
-        const transformerNode = transformer.value.getNode()
-        transformerNode.on('transform', handleTransform) // During transform (throttled)
-        transformerNode.on('transformend', handleTransformEnd) // On transform end (save)
-      }
+      nextTick(() => {
+        if (transformer.value) {
+          const transformerNode = transformer.value.getNode()
+          transformerNode.on('transform', handleTransform) // During transform (throttled)
+          transformerNode.on('transformend', handleTransformEnd) // On transform end (save)
+        }
+      })
       
       // Load canvas metadata first
       try {

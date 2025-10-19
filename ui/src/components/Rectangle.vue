@@ -92,7 +92,7 @@ export default {
       perfectDrawEnabled: false, // Faster drawing
       shadowForStrokeEnabled: false, // Disable expensive shadows
       hitStrokeWidth: 0, // No hit area expansion
-      transformsEnabled: 'position' // Only position transforms
+      transformsEnabled: 'all' // Allow all transforms including resize
     }))
 
     // Event handlers

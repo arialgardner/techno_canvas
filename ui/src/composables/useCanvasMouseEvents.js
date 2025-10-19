@@ -56,8 +56,8 @@ export function useCanvasMouseEvents({
     const canvasX = (pointer.x - stageAttrs.x) / stageAttrs.scaleX
     const canvasY = (pointer.y - stageAttrs.y) / stageAttrs.scaleY
     
-    // Check if clicking on a selected shape to start group drag
-    if (!clickedOnEmpty && selectedShapeIds.value.length > 0 && activeTool.value === 'select') {
+    // Check if clicking on a selected shape to start group drag (only for multiple selection)
+    if (!clickedOnEmpty && activeTool.value === 'select' && selectedShapeIds.value.length > 1) {
       const clickedShapeId = e.target.id()
       
       if (clickedShapeId && selectedShapeIds.value.includes(clickedShapeId)) {
@@ -67,6 +67,7 @@ export function useCanvasMouseEvents({
       }
     }
     
+    // Only handle empty space clicks - let shapes handle their own events
     if (clickedOnEmpty) {
       clearSelection()
       

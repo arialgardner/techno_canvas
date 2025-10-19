@@ -3,7 +3,7 @@
     <div class="window auth-card">
       <div class="inner">
         <div class="header">
-          <span class="title">techno canvas - Authentication</span>
+          <span class="title">Canvas Rooms</span>
         </div>
 
         <div class="content">
