@@ -40,8 +40,7 @@
     <EmptyState
       v-else-if="!isLoading && canvasesList.length === 0"
       type="dashboard"
-      title="No Rooms Yet"
-      message="Create your first room to start collaborating"
+      :hideIcon="true"
       class="dashboard-empty-state"
     >
       <button @click="showCreateModal = true" class="empty-state-button">

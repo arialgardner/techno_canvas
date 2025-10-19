@@ -1,17 +1,18 @@
 <template>
   <div class="empty-state">
-    <div class="empty-icon">
+    <div v-if="!hideIcon" class="empty-icon">
       <slot name="icon">
         {{ defaultIcon }}
       </slot>
     </div>
-    <h3 class="empty-title">{{ title }}</h3>
-    <p class="empty-message">{{ message }}</p>
+    <h3 v-if="title" class="empty-title">{{ title }}</h3>
+    <p v-if="message" class="empty-message">{{ message }}</p>
     <div v-if="actionText" class="empty-action">
       <button @click="$emit('action')" class="action-button">
         {{ actionText }}
       </button>
     </div>
+    <slot></slot>
   </div>
 </template>
 
@@ -34,6 +35,10 @@ const props = defineProps({
   actionText: {
     type: String,
     default: ''
+  },
+  hideIcon: {
+    type: Boolean,
+    default: false
   }
 })
 

@@ -38,7 +38,7 @@
       <EmptyState 
         v-if="!isLoading && shapesList.length === 0"
         type="canvas"
-        :title="`Welcome to ${currentCanvas?.name || 'Untitled'} room!`"
+        :title="`Welcome to ${currentCanvas?.name || 'Untitled'}!`"
         message="Enjoy your time"
         style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10; pointer-events: none;"
       />
@@ -1148,7 +1148,6 @@ export default {
           if (shapesArray.length > 0) {
             await createVersion(canvasId.value, user.value.uid, userName.value, shapesArray, 'manual')
             await listVersions(canvasId.value)
-            showVersionHistory.value = true
           }
         } catch (e) {
           console.error('Save version failed:', e)
