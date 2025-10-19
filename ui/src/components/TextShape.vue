@@ -32,6 +32,10 @@ export default {
     activeTool: {
       type: String,
       default: 'select'
+    },
+    editorOpen: {
+      type: Boolean,
+      default: false
     }
   },
   emits: ['update', 'select', 'edit'],
@@ -135,6 +139,9 @@ export default {
     }
 
     const handleDoubleClick = () => {
+      // Prevent opening editor if it's already open
+      if (props.editorOpen) return
+      
       // Emit edit event to open text editor
       emit('edit', props.text.id)
     }

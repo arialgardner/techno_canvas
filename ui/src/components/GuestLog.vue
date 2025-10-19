@@ -2,7 +2,6 @@
   <div 
     v-if="isVisible"
     class="guest-log-overlay"
-    @mousedown="handleOverlayClick"
   >
     <div
       ref="modalRef"
@@ -142,12 +141,6 @@ export default {
     
     const closeModal = () => {
       emit('close')
-    }
-    
-    const handleOverlayClick = (e) => {
-      if (e.target.classList.contains('guest-log-overlay')) {
-        closeModal()
-      }
     }
     
     const bringToFront = () => {
@@ -418,7 +411,6 @@ export default {
       remainingCooldown,
       canSubmit,
       closeModal,
-      handleOverlayClick,
       bringToFront,
       startDrag,
       submitEntry,

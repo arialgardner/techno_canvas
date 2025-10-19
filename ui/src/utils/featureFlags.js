@@ -11,9 +11,12 @@
 /**
  * Local feature flag overrides (for development/testing)
  * Set to null to use remote config, or true/false to override
+ * 
+ * IMPORTANT: USE_REALTIME_DB must be consistent across all users for presence sync to work.
+ * This is now hardcoded to true to prevent per-user localStorage inconsistencies.
  */
 const localOverrides = {
-  USE_REALTIME_DB: true, // null = use remote config, true/false = override
+  USE_REALTIME_DB: true, // ALWAYS TRUE - required for presence sync across users
   ENABLE_OT: null,
   ENABLE_PREDICTION: null,
   ENABLE_DELTA_SYNC: null
@@ -23,7 +26,7 @@ const localOverrides = {
  * Default flag values (used when remote config is unavailable)
  */
 const defaultFlags = {
-  USE_REALTIME_DB: false, // Default to Firestore (existing behavior)
+  USE_REALTIME_DB: true, // ALWAYS TRUE - required for presence sync across users
   ENABLE_OT: false,
   ENABLE_PREDICTION: false,
   ENABLE_DELTA_SYNC: false
@@ -74,6 +77,12 @@ export function initializeFeatureFlags() {
  * @returns {boolean} Flag value
  */
 export function getFeatureFlag(flagName, defaultValue = false) {
+  // IMPORTANT: USE_REALTIME_DB is always true to ensure presence sync works across all users
+  // This prevents localStorage inconsistencies between different users
+  if (flagName === 'USE_REALTIME_DB') {
+    return true
+  }
+  
   // Check local override first
   if (localOverrides[flagName] !== null && localOverrides[flagName] !== undefined) {
     return localOverrides[flagName]
@@ -94,6 +103,12 @@ export function getFeatureFlag(flagName, defaultValue = false) {
  * @param {boolean} value - Flag value
  */
 export function setFeatureFlag(flagName, value) {
+  // Prevent changing USE_REALTIME_DB to ensure consistency across all users
+  if (flagName === 'USE_REALTIME_DB') {
+    console.warn('[FeatureFlags] USE_REALTIME_DB is hardcoded to true and cannot be changed')
+    return
+  }
+  
   flagCache[flagName] = value
   
   // Persist to localStorage

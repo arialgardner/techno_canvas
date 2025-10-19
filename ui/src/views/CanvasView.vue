@@ -93,6 +93,7 @@
               :text="shape"
               :is-selected="selectedShapeIds.includes(shape.id)"
               :disable-drag="activeTool === 'pan' || (selectedShapeIds.length > 1 && selectedShapeIds.includes(shape.id))"
+              :editor-open="showTextEditor"
               @update="handleShapeUpdate"
               @edit="handleTextEdit"
               @select="handleShapeSelect"
@@ -221,11 +222,6 @@
     <!-- Spotify Sidebar (v7: Always-visible music player) -->
     <SpotifySidebar />
 
-    <!-- Chat Box (room-specific chat, always visible) -->
-    <ChatBox
-      v-if="user && canvasId && hasCanvasAccess"
-      :canvas-id="canvasId"
-    />
   </div>
 </template>
 
@@ -252,17 +248,13 @@ import RecoveryModal from '../components/RecoveryModal.vue'
 import VersionHistory from '../components/VersionHistory.vue'
 import AICommandPanel from '../components/AICommandPanel.vue'
 import SpotifySidebar from '../components/SpotifySidebar.vue'
-import ChatBox from '../components/ChatBox.vue'
 import { useShapes } from '../composables/useShapes'
 import { useFirestore } from '../composables/useFirestore' // v5: Batch operations
 import { getMaxZIndex, DEFAULT_SHAPE_PROPERTIES } from '../types/shapes'
 import { useAuth } from '../composables/useAuth'
 import { useCanvases } from '../composables/useCanvases'
-import { useCursors } from '../composables/useCursors'
 import { useCursorsRTDB } from '../composables/useCursorsRTDB'
-import { usePresence } from '../composables/usePresence'
 import { usePresenceRTDB } from '../composables/usePresenceRTDB'
-import { getFeatureFlag } from '../utils/featureFlags'
 import { usePerformance } from '../composables/usePerformance'
 import { usePerformanceMonitoring } from '../composables/usePerformanceMonitoring'
 import { useConnectionState } from '../composables/useConnectionState'
@@ -308,8 +300,7 @@ export default {
     EmptyState,
     TestingDashboard,
     AICommandPanel,
-    SpotifySidebar,
-    ChatBox
+    SpotifySidebar
   },
   setup() {
     // Router
@@ -378,12 +369,10 @@ export default {
     // v5: Batch operations and snapshot support for version restore
     const { saveShapesBatch, updateShapesBatch, deleteShapesBatch, loadCanvasSnapshot, updateCanvasSnapshot } = useFirestore()
     
-    // v8: Feature flag controlled dual-mode (Firestore vs Realtime DB)
-    const useRealtimeDB = getFeatureFlag('USE_REALTIME_DB', false)
-    console.log(`[v8] Using ${useRealtimeDB ? 'Realtime DB' : 'Firestore'} for cursors and presence`)
+    // v8: Using Firebase Realtime Database for cursors and presence (required for sync)
+    console.log(`[v8] Using Realtime DB for cursors and presence`)
     
-    // Choose cursor composable based on feature flag
-    const cursorsComposable = useRealtimeDB ? useCursorsRTDB() : useCursors()
+    // Cursor composable - using RTDB for real-time updates
     const {
       cursors,
       updateCursorPosition,
@@ -393,17 +382,16 @@ export default {
       screenToCanvas,
       getAllCursors,
       cleanupStaleCursors
-    } = cursorsComposable
+    } = useCursorsRTDB()
     
-    // Choose presence composable based on feature flag
-    const presenceComposable = useRealtimeDB ? usePresenceRTDB() : usePresence()
+    // Presence composable - using RTDB for consistent presence tracking
     const {
       setUserOnline,
       setUserOffline,
       subscribeToPresence,
       getActiveUserCount,
       cleanup: cleanupPresence
-    } = presenceComposable
+    } = usePresenceRTDB()
     
     const { measureRender, throttle, logPerformanceSummary } = usePerformance()
     const { state: connectionState, setSyncHandler } = useConnectionState()
@@ -697,22 +685,17 @@ export default {
     }
 
     // Handle cursor tracking when mouse moves over canvas
-    const handleCursorMove = (e) => {
-      if (!isMouseOverCanvas.value || !user.value) return
-
-      const pointer = stage.value.getNode().getPointerPosition()
-      if (!pointer) return
-
-      // Convert screen coordinates to canvas coordinates
-      const canvasCoords = screenToCanvas(pointer.x, pointer.y, stageConfig.value)
+    // This callback is passed to useCanvasMouseEvents and called on every mouse move
+    const handleCursorMove = (canvasX, canvasY) => {
+      if (!user.value) return
       
       // Get user info
       const userId = user.value.uid
       const userName = user.value.displayName || user.value.email?.split('@')[0] || 'Anonymous'
       const cursorColor = '#667eea' // Will get from user profile later
       
-      // Update cursor position in Firestore (throttled)
-      updateCursorPosition(canvasId.value, userId, canvasCoords.x, canvasCoords.y, userName, cursorColor)
+      // Update cursor position (throttled in useCursorsRTDB)
+      updateCursorPosition(canvasId.value, userId, canvasX, canvasY, userName, cursorColor)
     }
 
     // Handle mouse entering canvas
@@ -888,7 +871,8 @@ export default {
       updateShapesBatch,
       updateTransformer,
       isSelecting,
-      updateVisibleShapes
+      updateVisibleShapes,
+      onCursorMove: handleCursorMove // Pass cursor tracking callback
     })
 
 
@@ -1060,10 +1044,9 @@ export default {
         subscribeToPresence(canvasId.value, user.value.uid)
       }
 
-      // Add cursor tracking to mousemove
+      // Note: Cursor tracking is now handled by useCanvasMouseEvents via onCursorMove callback
+      // Add mouse leave handler for cursor cleanup
       if (canvasWrapper.value) {
-        canvasWrapper.value.addEventListener('mousemove', handleCursorMove, { passive: true })
-        canvasWrapper.value.addEventListener('mouseenter', handleMouseEnter)
         canvasWrapper.value.addEventListener('mouseleave', handleMouseLeave)
       }
 
@@ -1191,8 +1174,6 @@ export default {
       
       // Remove cursor event listeners
       if (canvasWrapper.value) {
-        canvasWrapper.value.removeEventListener('mousemove', handleCursorMove)
-        canvasWrapper.value.removeEventListener('mouseenter', handleMouseEnter)
         canvasWrapper.value.removeEventListener('mouseleave', handleMouseLeave)
       }
     })

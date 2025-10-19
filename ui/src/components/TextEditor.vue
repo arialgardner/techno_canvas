@@ -51,6 +51,7 @@ export default {
   setup(props, { emit }) {
     const textInput = ref(null)
     const localText = ref('')
+    const isInitializing = ref(false)
 
     // Calculate editor position based on shape position and stage transform
     // Position 20px below the text's y position
@@ -86,13 +87,20 @@ export default {
     // Watch for visibility changes to focus input
     watch(() => props.isVisible, (newVal) => {
       if (newVal && props.textShape) {
+        isInitializing.value = true
         localText.value = props.textShape.text
         nextTick(() => {
           if (textInput.value) {
             textInput.value.focus()
             textInput.value.select()
           }
+          // Allow global click handler to work after a short delay
+          setTimeout(() => {
+            isInitializing.value = false
+          }, 150)
         })
+      } else {
+        isInitializing.value = false
       }
     })
 
@@ -127,7 +135,7 @@ export default {
 
     // Global click handler to close editor when clicking outside
     const handleGlobalClick = (e) => {
-      if (!props.isVisible) return
+      if (!props.isVisible || isInitializing.value) return
       
       // Check if click is outside text editor and toolbar
       const isEditorClick = e.target.closest('.text-editor-overlay')

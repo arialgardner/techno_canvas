@@ -38,7 +38,8 @@ export function useCanvasMouseEvents({
   updateShapesBatch,
   updateTransformer,
   isSelecting,
-  updateVisibleShapes
+  updateVisibleShapes,
+  onCursorMove // NEW: callback for cursor tracking
 }) {
   
   const handleMouseDown = async (e) => {
@@ -123,6 +124,11 @@ export function useCanvasMouseEvents({
     const stageAttrs = stage.value.getNode().attrs
     const canvasX = (pointer.x - stageAttrs.x) / stageAttrs.scaleX
     const canvasY = (pointer.y - stageAttrs.y) / stageAttrs.scaleY
+    
+    // Track cursor position for other users (always, regardless of tool/state)
+    if (onCursorMove && user.value) {
+      onCursorMove(canvasX, canvasY)
+    }
     
     // Handle group dragging
     if (isDraggingGroup.value) {
@@ -249,7 +255,8 @@ export function useCanvasMouseEvents({
   const handleDoubleClick = async (e) => {
     const clickedOnEmpty = e.target === stage.value.getNode()
     
-    if (clickedOnEmpty && activeTool.value === 'text' && canUserEdit.value) {
+    // Prevent double-click from creating new text if editor is already open
+    if (clickedOnEmpty && activeTool.value === 'text' && canUserEdit.value && !showTextEditor.value) {
       const pointer = stage.value.getNode().getPointerPosition()
       const stageAttrs = stage.value.getNode().attrs
       

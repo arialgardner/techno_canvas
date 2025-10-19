@@ -116,11 +116,14 @@ export const useCursorsRTDB = () => {
       const cursorRef = getCursorRef(canvasId, userId)
       await set(cursorRef, cursorData)
       
+      console.log(`[Cursor] Sent position for ${userName}: (${lastSentX}, ${lastSentY}) on canvas: ${canvasId}`)
+      
       // Set up auto-cleanup on disconnect (if not already set)
       if (!disconnectHandlers.has(userId)) {
         const disconnectRef = onDisconnect(cursorRef)
         await disconnectRef.remove()
         disconnectHandlers.set(userId, disconnectRef)
+        console.log(`[Cursor] Auto-cleanup on disconnect set for user: ${userId}`)
       }
       
       // Track bandwidth
@@ -131,7 +134,7 @@ export const useCursorsRTDB = () => {
       rtdbMonitoring.recordOperationComplete(operationId)
       
     } catch (error) {
-      console.error('Error updating cursor position (RTDB):', error)
+      console.error('[Cursor] Error updating cursor position (RTDB):', error)
       rtdbMonitoring.recordError('cursor-update', error)
     }
   }
@@ -149,8 +152,12 @@ export const useCursorsRTDB = () => {
     try {
       const cursorsRef = getAllCursorsRef(canvasId)
       
+      console.log(`[Cursor] Subscribing to cursors for canvas: ${canvasId}, currentUserId: ${currentUserId}`)
+      
       cursorUnsubscribe = onValue(cursorsRef, (snapshot) => {
         const cursorsData = snapshot.val() || {}
+        
+        console.log(`[Cursor] Received cursor update, total cursors: ${Object.keys(cursorsData).length}`, cursorsData)
         
         // Track received data size
         const dataSize = JSON.stringify(cursorsData).length
@@ -162,6 +169,7 @@ export const useCursorsRTDB = () => {
         // Remove cursors that no longer exist
         for (const userId of cursors.keys()) {
           if (!currentCursorIds.has(userId)) {
+            console.log(`[Cursor] Removing cursor for user: ${userId}`)
             cursors.delete(userId)
             interpolator.removeCursor(userId)
           }
@@ -171,6 +179,8 @@ export const useCursorsRTDB = () => {
         for (const [userId, cursorData] of Object.entries(cursorsData)) {
           // Don't show our own cursor
           if (userId === currentUserId) continue
+          
+          console.log(`[Cursor] Processing cursor for user: ${userId}, position: (${cursorData.x}, ${cursorData.y})`)
           
           // Convert timestamp if needed
           const cursor = {
@@ -203,18 +213,21 @@ export const useCursorsRTDB = () => {
           
           // Initialize in map if new
           if (!cursors.has(userId)) {
+            console.log(`[Cursor] Adding new cursor for user: ${userId}`)
             cursors.set(userId, cursor)
           }
         }
+        
+        console.log(`[Cursor] Cursors map now has ${cursors.size} cursors`)
       }, (error) => {
-        console.error('Error in cursor subscription (RTDB):', error)
+        console.error('[Cursor] Error in cursor subscription (RTDB):', error)
         rtdbMonitoring.recordError('cursor-subscription', error)
       })
       
       // Set up periodic cleanup of stale cursors
       const cleanupInterval = setInterval(cleanupStaleCursors, 10000) // Every 10 seconds
       
-      // console.log(`Cursor subscription started (RTDB) for canvas: ${canvasId}`)
+      console.log(`[Cursor] Cursor subscription started (RTDB) for canvas: ${canvasId}`)
       
       // Return wrapped unsubscribe
       return () => {
@@ -225,7 +238,7 @@ export const useCursorsRTDB = () => {
         clearInterval(cleanupInterval)
       }
     } catch (error) {
-      console.error('Error subscribing to cursors (RTDB):', error)
+      console.error('[Cursor] Error subscribing to cursors (RTDB):', error)
       rtdbMonitoring.recordError('cursor-subscribe', error)
       throw error
     }
